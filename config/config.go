@@ -1,7 +1,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 
 	"gopkg.in/yaml.v2"
@@ -60,7 +59,7 @@ func New(path string) (*Config, error) {
 	h := log.NewTerminalHandler(os.Stdout, true)
 	log.SetDefault(log.NewLogger(h))
 
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
