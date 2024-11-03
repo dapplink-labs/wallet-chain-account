@@ -4,12 +4,14 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	account2 "github.com/dapplink-labs/chain-explorer-api/common/account"
 	"github.com/dapplink-labs/wallet-chain-account/chain"
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
 	common2 "github.com/dapplink-labs/wallet-chain-account/rpc/common"
 	"github.com/ethereum/go-ethereum/log"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
@@ -300,8 +302,52 @@ func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashR
 
 // GetBlockByRange 根据区块范围获取区块
 func (c *ChainAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*account.BlockByRangeResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	// 将起始区块和结束区块转换为 big.Int
+	startBlock := new(big.Int)
+	endBlock := new(big.Int)
+	if _, ok := startBlock.SetString(req.Start, 10); !ok {
+		return nil, fmt.Errorf("invalid start block number: %s", req.Start)
+	}
+	if _, ok := endBlock.SetString(req.End, 10); !ok {
+		return nil, fmt.Errorf("invalid end block number: %s", req.End)
+	}
+
+	// 确保起始区块号小于等于结束区块号
+	if startBlock.Cmp(endBlock) > 0 {
+		return &account.BlockByRangeResponse{
+			Code: common2.ReturnCode_ERROR,
+			Msg:  "start block number must be less than or equal to end block number",
+		}, nil
+	}
+
+	// 预分配 slice 长度
+	blockHeaderList := make([]*account.BlockHeader, 0, endBlock.Int64()-startBlock.Int64()+1)
+
+	// 循环获取区块数据
+	for i := startBlock.Int64(); i <= endBlock.Int64(); i++ {
+		block, err := c.tronClient.GetBlockByNumber(i)
+		if err != nil {
+			return &account.BlockByRangeResponse{
+				Code: common2.ReturnCode_ERROR,
+				Msg:  fmt.Sprintf("failed to get block %d: %v", i, err),
+			}, nil
+		}
+
+		// 将获取的区块数据添加到 blockHeaderList
+		blockHeaderList = append(blockHeaderList, &account.BlockHeader{
+			ParentHash: block.ParentHash,
+			Difficulty: block.Difficulty,
+			Number:     block.Number,
+			Nonce:      block.Nonce,
+		})
+	}
+
+	// 返回成功响应
+	return &account.BlockByRangeResponse{
+		Code:        common2.ReturnCode_SUCCESS,
+		Msg:         "get block by range success",
+		BlockHeader: blockHeaderList,
+	}, nil
 }
 
 // CreateUnSignTransaction 创建未签名的交易
