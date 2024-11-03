@@ -28,14 +28,15 @@ const (
 )
 
 type TransactionList struct {
-	From   string `json:"from"`
-	To     string `json:"to"`
-	Hash   string `json:"hash"`
-	Amount big.Int
+	From  string `json:"from"`
+	To    string `json:"to"`
+	Hash  string `json:"hash"`
+	Value string `json:"value"`
 }
 
 type RpcBlock struct {
 	Hash         common.Hash       `json:"hash"`
+	Height       uint64            `json:"height"`
 	Transactions []TransactionList `json:"transactions"`
 	BaseFee      string            `json:"baseFeePerGas"`
 }

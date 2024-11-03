@@ -111,8 +111,14 @@ func (d *ChainDispatcher) ConvertAddress(ctx context.Context, request *account.C
 }
 
 func (d *ChainDispatcher) ValidAddress(ctx context.Context, request *account.ValidAddressRequest) (*account.ValidAddressResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	resp := d.preHandler(request)
+	if resp != nil {
+		return &account.ValidAddressResponse{
+			Code: common.ReturnCode_ERROR,
+			Msg:  "valid address error at pre handle",
+		}, nil
+	}
+	return d.registry[request.Chain].ValidAddress(request)
 }
 
 func (d *ChainDispatcher) GetBlockByNumber(ctx context.Context, request *account.BlockNumberRequest) (*account.BlockResponse, error) {

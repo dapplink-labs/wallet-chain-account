@@ -6,6 +6,7 @@ require (
 	github.com/dapplink-labs/chain-explorer-api v0.0.1-beta
 	github.com/ethereum/go-ethereum v1.14.11
 	github.com/pkg/errors v0.9.1
+	github.com/status-im/keycard-go v0.2.0
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.35.1
 	gopkg.in/yaml.v2 v2.4.0

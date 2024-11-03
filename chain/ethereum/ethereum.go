@@ -3,10 +3,14 @@ package ethereum
 import (
 	"context"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/status-im/keycard-go/hexutils"
 	"math/big"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -37,7 +41,7 @@ func NewChainAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
 	if err != nil {
 		return nil, err
 	}
-	ethDataClient, err := NewEthDataClient(conf.WalletNode.Eth.DataApiUrl, conf.WalletNode.Eth.DataApiKey, time.Duration(conf.WalletNode.Eth.TimeOut))
+	ethDataClient, err := NewEthDataClient(conf.WalletNode.Eth.DataApiUrl, conf.WalletNode.Eth.DataApiKey, time.Second*15)
 	if err != nil {
 		return nil, err
 	}
@@ -56,16 +60,44 @@ func (c *ChainAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*acc
 }
 
 func (c *ChainAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account.ConvertAddressResponse, error) {
-	addressCommon := common.BytesToAddress(crypto.Keccak256(req.PublicKey[1:])[12:])
+	publicKeyBytes, err := hex.DecodeString(req.PublicKey)
+	if err != nil {
+		return &account.ConvertAddressResponse{
+			Code:    common2.ReturnCode_ERROR,
+			Msg:     "convert address fail",
+			Address: common.Address{}.String(),
+		}, nil
+	}
+	addressCommon := common.BytesToAddress(crypto.Keccak256(publicKeyBytes[1:])[12:])
 	return &account.ConvertAddressResponse{
 		Code:    common2.ReturnCode_SUCCESS,
-		Msg:     "convert address successs",
+		Msg:     "convert address success",
 		Address: addressCommon.String(),
 	}, nil
 }
 
 func (c *ChainAdaptor) ValidAddress(req *account.ValidAddressRequest) (*account.ValidAddressResponse, error) {
-	return nil, nil
+	if len(req.Address) != 42 || !strings.HasPrefix(req.Address, "0x") {
+		return &account.ValidAddressResponse{
+			Code:  common2.ReturnCode_SUCCESS,
+			Msg:   "invalid address",
+			Valid: false,
+		}, nil
+	}
+	ok := regexp.MustCompile("^[0-9a-fA-F]{40}$").MatchString(req.Address[2:])
+	if ok {
+		return &account.ValidAddressResponse{
+			Code:  common2.ReturnCode_SUCCESS,
+			Msg:   "valid address",
+			Valid: true,
+		}, nil
+	} else {
+		return &account.ValidAddressResponse{
+			Code:  common2.ReturnCode_SUCCESS,
+			Msg:   "invalid address",
+			Valid: false,
+		}, nil
+	}
 }
 
 func (c *ChainAdaptor) GetBlockHeaderByNumber(req *account.BlockHeaderNumberRequest) (*account.BlockHeaderResponse, error) {
@@ -84,6 +116,7 @@ func (c *ChainAdaptor) GetBlockHeaderByNumber(req *account.BlockHeaderNumberRequ
 		}, nil
 	}
 	blockHead := &account.BlockHeader{
+		Hash:             blockInfo.Hash().String(),
 		ParentHash:       blockInfo.ParentHash.String(),
 		UncleHash:        blockInfo.UncleHash.String(),
 		CoinBase:         blockInfo.Coinbase.String(),
@@ -112,13 +145,7 @@ func (c *ChainAdaptor) GetBlockHeaderByNumber(req *account.BlockHeaderNumberRequ
 }
 
 func (c *ChainAdaptor) GetBlockHeaderByHash(req *account.BlockHeaderHashRequest) (*account.BlockHeaderResponse, error) {
-	var blockHash common.Hash
-	if req.Hash == "" {
-		blockHash = common.Hash{}
-	} else {
-		blockHash = common.HexToHash(req.Hash)
-	}
-	blockInfo, err := c.ethClient.BlockHeaderByHash(blockHash)
+	blockInfo, err := c.ethClient.BlockHeaderByHash(common.HexToHash(req.Hash))
 	if err != nil {
 		log.Error("get latest block header fail", "err", err)
 		return &account.BlockHeaderResponse{
@@ -127,6 +154,7 @@ func (c *ChainAdaptor) GetBlockHeaderByHash(req *account.BlockHeaderHashRequest)
 		}, nil
 	}
 	blockHeader := &account.BlockHeader{
+		Hash:             blockInfo.Hash().String(),
 		ParentHash:       blockInfo.ParentHash.String(),
 		UncleHash:        blockInfo.UncleHash.String(),
 		CoinBase:         blockInfo.Coinbase.String(),
@@ -169,13 +197,14 @@ func (c *ChainAdaptor) GetBlockByNumber(req *account.BlockNumberRequest) (*accou
 			From:   v.From,
 			To:     v.To,
 			Hash:   v.Hash,
-			Amount: v.Amount.String(),
+			Amount: v.Value,
 		}
 		txListRet = append(txListRet, bitlItem)
 	}
 	return &account.BlockResponse{
 		Code:         common2.ReturnCode_SUCCESS,
 		Msg:          "block by number success",
+		Height:       int64(block.Height),
 		Hash:         block.Hash.String(),
 		BaseFee:      block.BaseFee,
 		Transactions: txListRet,
@@ -197,13 +226,14 @@ func (c *ChainAdaptor) GetBlockByHash(req *account.BlockHashRequest) (*account.B
 			From:   v.From,
 			To:     v.To,
 			Hash:   v.Hash,
-			Amount: v.Amount.String(),
+			Amount: v.Value,
 		}
 		txListRet = append(txListRet, bitlItem)
 	}
 	return &account.BlockResponse{
 		Code:         common2.ReturnCode_SUCCESS,
-		Msg:          "block by number success",
+		Msg:          "block by hash success",
+		Height:       int64(block.Height),
 		Hash:         block.Hash.String(),
 		BaseFee:      block.BaseFee,
 		Transactions: txListRet,
@@ -227,12 +257,13 @@ func (c *ChainAdaptor) GetAccount(req *account.AccountRequest) (*account.Account
 			Balance: "0",
 		}, err
 	}
+	log.Info("balance result", "balance=", balanceResult.Balance, "balanceStr=", balanceResult.BalanceStr)
 	return &account.AccountResponse{
 		Code:          common2.ReturnCode_SUCCESS,
 		Msg:           "get account response success",
 		AccountNumber: "0",
 		Sequence:      nonceResult.String(),
-		Balance:       balanceResult.BalanceStr,
+		Balance:       balanceResult.Balance.Int().String(),
 	}, nil
 }
 
@@ -344,6 +375,12 @@ func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashR
 	from_addrs = append(from_addrs, &account.Address{Address: ""})
 	to_addrs = append(to_addrs, &account.Address{Address: tx.To().Hex()})
 	value_list = append(value_list, &account.Value{Value: tx.Value().String()})
+	var txStatus account.TxStatus
+	if receipt.Status == 1 {
+		txStatus = account.TxStatus_Success
+	} else {
+		txStatus = account.TxStatus_Failed
+	}
 	return &account.TxHashResponse{
 		Code: common2.ReturnCode_SUCCESS,
 		Msg:  "get transaction success",
@@ -354,10 +391,11 @@ func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashR
 			Tos:             to_addrs,
 			Values:          value_list,
 			Fee:             tx.GasFeeCap().String(),
-			Status:          account.TxStatus_Success,
+			Status:          txStatus,
 			Type:            0,
 			Height:          receipt.BlockNumber.String(),
 			ContractAddress: tx.To().String(),
+			Data:            hexutils.BytesToHex(tx.Data()),
 		},
 	}, nil
 }
