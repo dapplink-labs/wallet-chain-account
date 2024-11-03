@@ -3,7 +3,7 @@ server:
 
 network: mainnet
 
-chains: [Ethereum]
+chains: [Ethereum,Tron]
 
 wallet_node:
   eth:
@@ -14,4 +14,11 @@ wallet_node:
     data_api_key: 'HZEZGEPJJDA633N421AYW9NE8JFNZZC7JT'
     data_api_token: ''
     time_out: 100
-
+  tron:
+    rpcs:
+      - rpc_url: 'https://docs-demo.tron-mainnet.quiknode.pro'
+    confirmations: 4
+    data_api_url: ''
+    data_api_key: ''
+    data_api_token: ''
+    time_out: 100

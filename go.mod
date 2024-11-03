@@ -3,6 +3,7 @@ module github.com/dapplink-labs/wallet-chain-account
 go 1.22.0
 
 require (
+	github.com/fbsobreira/gotron-sdk v0.0.0-20230907131216-1e824406fe8c
 	github.com/dapplink-labs/chain-explorer-api v0.0.1-beta
 	github.com/ethereum/go-ethereum v1.14.11
 	github.com/xssnick/tonutils-go v1.10.2
