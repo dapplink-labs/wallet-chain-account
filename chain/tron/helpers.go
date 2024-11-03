@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/mr-tron/base58/base58"
+	"strings"
 )
 
 // ComputeAddress 将公钥字节数组转换为 TRON 地址
@@ -34,4 +36,18 @@ func ParseJSON(data []byte, v interface{}) error {
 		return fmt.Errorf("failed to parse JSON: %v", err)
 	}
 	return nil
+}
+
+// Base58ToHex 将 TRON 地址从 base58 转换为十六进制
+func Base58ToHex(base58Address string) (string, error) {
+	bytes, err := base58.Decode(base58Address)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
+// PadLeftZero 将十六进制字符串左侧填充零至指定长度
+func PadLeftZero(hexStr string, length int) string {
+	return strings.Repeat("0", length-len(hexStr)) + hexStr
 }

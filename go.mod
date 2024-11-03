@@ -5,6 +5,7 @@ go 1.22.0
 require (
 	github.com/dapplink-labs/chain-explorer-api v0.0.1-beta
 	github.com/ethereum/go-ethereum v1.14.11
+	github.com/mr-tron/base58 v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/status-im/keycard-go v0.2.0
 	github.com/xssnick/tonutils-go v1.10.2

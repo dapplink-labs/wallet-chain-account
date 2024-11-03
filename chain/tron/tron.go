@@ -1,12 +1,15 @@
 package tron
 
 import (
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	account2 "github.com/dapplink-labs/chain-explorer-api/common/account"
 	"github.com/dapplink-labs/wallet-chain-account/chain"
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
 	common2 "github.com/dapplink-labs/wallet-chain-account/rpc/common"
+	"github.com/ethereum/go-ethereum/log"
 	"strconv"
 	"strings"
 	"time"
@@ -217,8 +220,17 @@ func (c *ChainAdaptor) GetFee(req *account.FeeRequest) (*account.FeeResponse, er
 
 // SendTx 发送交易
 func (c *ChainAdaptor) SendTx(req *account.SendTxRequest) (*account.SendTxResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	_, err := c.tronClient.BroadcastTransaction(req.RawTx)
+	if err != nil {
+		return &account.SendTxResponse{
+			Code: common2.ReturnCode_ERROR,
+			Msg:  "Send tx error" + err.Error(),
+		}, err
+	}
+	return &account.SendTxResponse{
+		Code: common2.ReturnCode_SUCCESS,
+		Msg:  "send tx success",
+	}, nil
 }
 
 // GetTxByAddress 根据地址获取交易
@@ -286,31 +298,59 @@ func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashR
 	}, nil
 }
 
+// GetBlockByRange 根据区块范围获取区块
 func (c *ChainAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*account.BlockByRangeResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
+// CreateUnSignTransaction 创建未签名的交易
 func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	jsonBytes, err := base64.StdEncoding.DecodeString(req.Base64Tx)
+	if err != nil {
+		log.Error("decode string fail", "err", err)
+		return nil, err
+	}
+	var data TxStructure
+	if err := json.Unmarshal(jsonBytes, &data); err != nil {
+		log.Error("parse json fail", "err", err)
+		return nil, err
+	}
+	var transaction *UnSignTransaction
+	if data.ContractAddress == "" {
+		transaction, err = c.tronClient.CreateTRXTransaction(data.FromAddress, data.ToAddress, data.Value)
+	} else {
+		transaction, err = c.tronClient.CreateTRC20Transaction(data.FromAddress, data.ToAddress, data.ContractAddress, data.Value)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &account.UnSignTransactionResponse{
+		Code:     common2.ReturnCode_SUCCESS,
+		Msg:      "create un sign tx success",
+		UnSignTx: transaction.RawDataHex,
+	}, nil
 }
 
+// BuildSignedTransaction 创建签名的交易
 func (c *ChainAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequest) (*account.SignedTransactionResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
+// DecodeTransaction 解码交易
 func (c *ChainAdaptor) DecodeTransaction(req *account.DecodeTransactionRequest) (*account.DecodeTransactionResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
+// VerifySignedTransaction 验证签名
 func (c *ChainAdaptor) VerifySignedTransaction(req *account.VerifyTransactionRequest) (*account.VerifyTransactionResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
+// GetExtraData 获取额外数据
 func (c *ChainAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.ExtraDataResponse, error) {
 	//TODO implement me
 	panic("implement me")
