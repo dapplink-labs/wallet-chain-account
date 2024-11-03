@@ -80,3 +80,34 @@ type FreeAssetNetUsageV2 struct {
 	Key   string `json:"key"`
 	Value int    `json:"value"`
 }
+
+type Transaction struct {
+	Ret        []Ret    `json:"ret"`
+	Signature  []string `json:"signature"`
+	TxID       string   `json:"txID"`
+	RawData    RawData  `json:"raw_data"`
+	RawDataHex string   `json:"raw_data_hex"`
+}
+type Ret struct {
+	ContractRet string `json:"contractRet"`
+}
+type Value struct {
+	Amount       int    `json:"amount"`
+	OwnerAddress string `json:"owner_address"`
+	ToAddress    string `json:"to_address"`
+}
+type Parameter struct {
+	Value   Value  `json:"value"`
+	TypeURL string `json:"type_url"`
+}
+type Contract struct {
+	Parameter Parameter `json:"parameter"`
+	Type      string    `json:"type"`
+}
+type RawData struct {
+	Contract      []Contract `json:"contract"`
+	RefBlockBytes string     `json:"ref_block_bytes"`
+	RefBlockHash  string     `json:"ref_block_hash"`
+	Expiration    int64      `json:"expiration"`
+	Timestamp     int64      `json:"timestamp"`
+}

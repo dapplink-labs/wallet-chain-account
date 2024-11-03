@@ -220,3 +220,19 @@ func (client *TronClient) GetTxByAddress(address string) (interface{}, error) {
 	}
 	return txList, nil
 }
+
+// GetTransactionByID 根据交易哈希获取交易信息
+func (client *TronClient) GetTransactionByID(txHash string) (*Transaction, error) {
+	params := map[string]interface{}{
+		"hash": txHash,
+	}
+	result, err := client.PostSolidity("gettransactionbyid", params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tx by id: %v", err)
+	}
+	var txInfo Transaction
+	if err := json.Unmarshal(result, &txInfo); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal tx info: %v", err)
+	}
+	return &txInfo, nil
+}

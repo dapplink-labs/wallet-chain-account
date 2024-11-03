@@ -18,7 +18,7 @@ wallet_node:
     rpcs:
       - rpc_url: 'https://docs-demo.tron-mainnet.quiknode.pro'
     confirmations: 4
-    data_api_url: ''
-    data_api_key: ''
+    data_api_url: 'https://www.oklink.com'
+    data_api_key: '5181d535-b68f-41cf-bbc6-25905e46b6a6'
     data_api_token: ''
     time_out: 100
