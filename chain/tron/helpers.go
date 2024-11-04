@@ -8,7 +8,11 @@ import (
 	"strings"
 )
 
-// Base58ToHex 将 TRON 地址从 base58 转换为十六进制
+const (
+	AddressPrefix = "41"
+)
+
+// Base58ToHex Convert TRON address from base58 to hexadecimal
 func Base58ToHex(base58Address string) (string, error) {
 	bytes, err := common.Decode(base58Address)
 	if err != nil {
@@ -17,19 +21,18 @@ func Base58ToHex(base58Address string) (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
-// PadLeftZero 将十六进制字符串左侧填充零至指定长度
+// PadLeftZero Fill the left side of the hexadecimal string with zero to the specified length
 func PadLeftZero(hexStr string, length int) string {
 	return strings.Repeat("0", length-len(hexStr)) + hexStr
 }
 
-// ParseTRC20TransferData 从 ABI 编码的数据中提取 `to` 地址和 `amount`
+// ParseTRC20TransferData Extract the 'to' address and 'amount' from ABI encoded data`
 func ParseTRC20TransferData(data string) (string, *big.Int) {
-	// 提取接收地址（第10-20个字节，16进制每字节2字符，位置20到40）
+	// Extract the receiving address (10-20 bytes, 2 characters per byte in hexadecimal, positions 20 to 40)
 	toAddressHex := data[32:72]
-	toAddress := address.HexToAddress("41" + toAddressHex) // TRON 地址通常以 '41' 开头
-
-	valueHex := data[72:136] // 获取金额
+	toAddress := address.HexToAddress(AddressPrefix + toAddressHex) // TRON addresses usually start with '41'
+	valueHex := data[72:136]                                        // Get amount
 	value := new(big.Int)
-	value.SetString(valueHex, 16) // 解析16进制为整数
+	value.SetString(valueHex, 16) // Parse hexadecimal to integer
 	return toAddress.String(), value
 }

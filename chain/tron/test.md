@@ -64,6 +64,7 @@ grpcurl -plaintext -d '{
 grpcurl -plaintext -d '{
   "chain": "Tron",
   "height": "66686212"
+  "viewTx": true
 }' 127.0.0.1:8189 dapplink.account.WalletAccountService.getBlockByNumber
 ```
 - response
@@ -75,7 +76,14 @@ grpcurl -plaintext -d '{
   "height": "66686212",
   "hash": "0x0000000003f98d049ada54ba67340fb6591f027069ee4c8f64ab0f0b7bc24c36",
   "base_fee": "0x0",
-  "transactions": []
+  "transactions": [
+    {
+      "from": "",
+      "to": "",
+      "hash": "0x1a2ec53e0d4252453ca70af3714bbea668a1db9d6b4869615eb7f8a49023c74a",
+      "amount": ""
+    }
+  ]
 }
 ```
 
@@ -86,6 +94,7 @@ grpcurl -plaintext -d '{
 grpcurl -plaintext -d '{
   "chain": "Tron",
   "hash": "0x0000000003f98d049ada54ba67340fb6591f027069ee4c8f64ab0f0b7bc24c36"
+  "viewTx": true
 }' 127.0.0.1:8189 dapplink.account.WalletAccountService.getBlockByHash
 ```
 - response
@@ -97,7 +106,14 @@ grpcurl -plaintext -d '{
   "height": "66686212",
   "hash": "0x0000000003f98d049ada54ba67340fb6591f027069ee4c8f64ab0f0b7bc24c36",
   "base_fee": "0x0",
-  "transactions": []
+  "transactions": [
+    {
+      "from": "",
+      "to": "",
+      "hash": "0x1a2ec53e0d4252453ca70af3714bbea668a1db9d6b4869615eb7f8a49023c74a",
+      "amount": ""
+    }
+  ]
 }
 ```
 
@@ -106,11 +122,8 @@ grpcurl -plaintext -d '{
 - request
 ```
 grpcurl -plaintext -d '{
-  "chain": "Tron",
-  "network": "mainnet",
-  "address": "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH",
-  "contractAddress": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-  "coin": ""
+  "address": "TFrxDg6zS459n5KUK4E48646LxRvnyZq7Z",
+  "chain": "Tron"
 }' 127.0.0.1:8189 dapplink.account.WalletAccountService.getAccount
 ```
 - response
@@ -122,10 +135,30 @@ grpcurl -plaintext -d '{
   "network": "",
   "account_number": "0",
   "sequence": "",
-  "balance": "0"
+  "balance": "3216070077"
 }
 ```
 
+- request
+```
+grpcurl -plaintext -d '{
+  "chain": "Tron",
+  "address": "TDYU7chCdKTEfpLaLuB9KaMgn1X9uzhZXL",
+  "contractAddress": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+}' 127.0.0.1:8189 dapplink.account.WalletAccountService.getAccount
+```
+- response
+
+```
+{
+  "code": "SUCCESS",
+  "msg": "get account response success",
+  "network": "",
+  "account_number": "",
+  "sequence": "",
+  "balance": "246263060081"
+}
+```
 ## 7.get fee
 
 - request

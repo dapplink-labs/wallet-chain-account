@@ -16,7 +16,9 @@ wallet_node:
     time_out: 100
   tron:
     rpcs:
-      - rpc_url: 'https://docs-demo.tron-mainnet.quiknode.pro'
+      - rpc_url: 'https://api.trongrid.io'
+        rpc_user: 'TRON-PRO-API-KEY'
+        rpc_pass: 'f7ae3e01-17d1-4a31-92b3-57f99457d915'
     confirmations: 4
     data_api_url: 'https://www.oklink.com'
     data_api_key: '5181d535-b68f-41cf-bbc6-25905e46b6a6'

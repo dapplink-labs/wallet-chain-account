@@ -156,3 +156,10 @@ type SendTxReq struct {
 	RawData    RawData `json:"raw_data"`
 	RawDataHex string  `json:"raw_data_hex"`
 }
+
+type ChainParameters struct {
+	ChainParameter []struct {
+		Key   string `json:"key"`
+		Value int64  `json:"value,omitempty"`
+	} `json:"chainParameter"`
+}

@@ -23,7 +23,7 @@ func NewTronDataClient(baseUrl, apiKey string, timeout time.Duration) (*TronData
 	return &TronData{TronDataCli: tronDataCli}, err
 }
 
-// GetTxByAddress 获取地址的交易
+// GetTxByAddress Transaction for obtaining address
 func (td *TronData) GetTxByAddress(page, pagesize uint64, address string, action account.ActionType) (*account.TransactionResponse[account.AccountTxResponse], error) {
 	request := &account.AccountTxRequest{
 		ChainShortName: ChainName,
@@ -42,7 +42,7 @@ func (td *TronData) GetTxByAddress(page, pagesize uint64, address string, action
 	return txData, nil
 }
 
-// GetEstimateGasFee 获取预估手续费
+// GetEstimateGasFee Obtain estimated transaction fees
 func (td *TronData) GetEstimateGasFee() (*gas_fee.GasEstimateFeeResponse, error) {
 	request := &gas_fee.GasEstimateFeeRequest{
 		ChainShortName: ChainName,
