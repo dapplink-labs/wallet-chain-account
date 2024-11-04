@@ -337,24 +337,43 @@ func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashR
 	}
 	// 获取交易的基本信息
 	fromAddress := resp.RawData.Contract[0].Parameter.Value.OwnerAddress
-	toAddress := resp.RawData.Contract[0].Parameter.Value.ToAddress
-	amount := resp.RawData.Contract[0].Parameter.Value.Amount
 
-	// 返回成功的交易信息
-	return &account.TxHashResponse{
-		Code: common2.ReturnCode_SUCCESS,
-		Msg:  "get transactions by address success",
-		Tx: &account.TxMessage{
-			Hash:   resp.TxID,
-			Tos:    []*account.Address{{Address: toAddress}},
-			Froms:  []*account.Address{{Address: fromAddress}},
-			Fee:    "",
-			Status: account.TxStatus_Success,
-			Values: []*account.Value{{Value: strconv.Itoa(amount)}},
-			Type:   1,
-			//Height: "0",
-		},
-	}, nil
+	if resp.RawData.Contract[0].Type == "TriggerSmartContract" {
+		toAddress, amount := ParseTRC20TransferData(resp.RawData.Contract[0].Parameter.Value.Data)
+		// 返回成功的交易信息
+		return &account.TxHashResponse{
+			Code: common2.ReturnCode_SUCCESS,
+			Msg:  "get transactions by address success",
+			Tx: &account.TxMessage{
+				Hash:   resp.TxID,
+				Tos:    []*account.Address{{Address: toAddress}},
+				Froms:  []*account.Address{{Address: fromAddress}},
+				Fee:    "",
+				Status: account.TxStatus_Success,
+				Values: []*account.Value{{Value: amount.String()}},
+				Type:   1,
+				//Height: "0",
+			},
+		}, nil
+	} else {
+		toAddress := resp.RawData.Contract[0].Parameter.Value.ToAddress
+		amount := resp.RawData.Contract[0].Parameter.Value.Amount
+		// 返回成功的交易信息
+		return &account.TxHashResponse{
+			Code: common2.ReturnCode_SUCCESS,
+			Msg:  "get transactions by address success",
+			Tx: &account.TxMessage{
+				Hash:   resp.TxID,
+				Tos:    []*account.Address{{Address: toAddress}},
+				Froms:  []*account.Address{{Address: fromAddress}},
+				Fee:    "",
+				Status: account.TxStatus_Success,
+				Values: []*account.Value{{Value: strconv.Itoa(amount)}},
+				Type:   1,
+				//Height: "0",
+			},
+		}, nil
+	}
 }
 
 // GetBlockByRange 根据区块范围获取区块

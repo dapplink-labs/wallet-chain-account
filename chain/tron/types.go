@@ -107,9 +107,12 @@ type Ret struct {
 }
 
 type Value struct {
-	Amount       int    `json:"amount"`
-	OwnerAddress string `json:"owner_address"`
-	ToAddress    string `json:"to_address"`
+	Amount          int    `json:"amount"`
+	OwnerAddress    string `json:"owner_address"`
+	ToAddress       string `json:"to_address"`
+	CallValue       int    `json:"call_value"`
+	ContractAddress string `json:"contract_address"`
+	Data            string `json:"data"`
 }
 
 type Parameter struct {
