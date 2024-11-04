@@ -15,7 +15,7 @@ type TronData struct {
 }
 
 func NewTronDataClient(baseUrl, apiKey string, timeout time.Duration) (*TronData, error) {
-	tronDataCli, err := oklink.NewChainExplorerAdaptor(apiKey, baseUrl, false, time.Duration(timeout))
+	tronDataCli, err := oklink.NewChainExplorerAdaptor(apiKey, baseUrl+"/", false, time.Duration(timeout))
 	if err != nil {
 		log.Error("New tronerscan client fail", "err", err)
 		return nil, err

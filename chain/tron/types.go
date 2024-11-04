@@ -87,6 +87,13 @@ type UnSignTransaction struct {
 	RawDataHex string  `json:"raw_data_hex"`
 }
 
+type UnSignTrc20Transaction struct {
+	Result struct {
+		Result bool `json:"result"`
+	} `json:"result"`
+	Transaction UnSignTransaction `json:"transaction"`
+}
+
 type Transaction struct {
 	Ret        []Ret    `json:"ret"`
 	Signature  []string `json:"signature"`
@@ -130,20 +137,19 @@ type TxStructure struct {
 	Value           int64  `json:"value"`
 }
 
-//type SendRawTransactionParams struct {
-//	rawData struct {
-//		Contract      []Contract `json:"contract"`
-//		RefBlockBytes string     `json:"ref_block_bytes"`
-//		RefBlockHash  string     `json:"ref_block_hash"`
-//		Expiration    int64      `json:"expiration"`
-//		Timestamp     int64      `json:"timestamp"`
-//	}
-//	rawDataHex string
-//	signature  []string
-//}
-
 type BroadcastReturns struct {
 	Code    string `json:"code"`
 	Txid    string `json:"txid"`
 	Message string `json:"message"`
+}
+
+type Response[T any] struct {
+	Jsonrpc string `json:"jsonrpc"`
+	Id      int    `json:"id"`
+	Result  T      `json:"result"`
+}
+
+type SendTxReq struct {
+	RawData    RawData `json:"raw_data"`
+	RawDataHex string  `json:"raw_data_hex"`
 }

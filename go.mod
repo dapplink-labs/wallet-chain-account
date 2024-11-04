@@ -5,7 +5,7 @@ go 1.22.0
 require (
 	github.com/dapplink-labs/chain-explorer-api v0.0.1-beta
 	github.com/ethereum/go-ethereum v1.14.11
-	github.com/mr-tron/base58 v1.2.0
+	github.com/fbsobreira/gotron-sdk v0.0.0-20230907131216-1e824406fe8c
 	github.com/pkg/errors v0.9.1
 	github.com/status-im/keycard-go v0.2.0
 	github.com/xssnick/tonutils-go v1.10.2
@@ -32,6 +32,7 @@ require (
 	github.com/holiman/uint256 v1.3.1 // indirect
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/oasisprotocol/curve25519-voi v0.0.0-20220328075252-7dd334e3daae // indirect
+	github.com/shengdoushi/base58 v1.0.0 // indirect
 	github.com/shirou/gopsutil v3.21.4-0.20210419000835-c7a38de76ee5+incompatible // indirect
 	github.com/sigurn/crc16 v0.0.0-20211026045750-20ab5afb07e3 // indirect
 	github.com/supranational/blst v0.3.13 // indirect

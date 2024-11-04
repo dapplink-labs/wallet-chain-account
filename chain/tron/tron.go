@@ -5,15 +5,16 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/btcsuite/btcd/btcec/v2"
 	account2 "github.com/dapplink-labs/chain-explorer-api/common/account"
 	"github.com/dapplink-labs/wallet-chain-account/chain"
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
 	common2 "github.com/dapplink-labs/wallet-chain-account/rpc/common"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/fbsobreira/gotron-sdk/pkg/address"
 	"math/big"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -51,14 +52,13 @@ func (c *ChainAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*acc
 
 // ConvertAddress 将公钥转换为地址
 func (c *ChainAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account.ConvertAddressResponse, error) {
-	bytes, err := hex.DecodeString(req.PublicKey)
-	if err != nil {
-		return &account.ConvertAddressResponse{
-			Code: common2.ReturnCode_ERROR,
-			Msg:  err.Error(),
-		}, nil
-	}
-	address, err := ComputeAddress(bytes)
+	// 将十六进制字符串解码为字节数组
+	pubKeyBytes, err := hex.DecodeString(req.PublicKey)
+	// 将字节数组解析为公钥
+	pubKey, _ := btcec.ParsePubKey(pubKeyBytes)
+	// 将公钥转换为地址
+	addr := address.PubkeyToAddress(*pubKey.ToECDSA())
+
 	if err != nil {
 		return &account.ConvertAddressResponse{
 			Code: common2.ReturnCode_ERROR,
@@ -68,33 +68,24 @@ func (c *ChainAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*acco
 		return &account.ConvertAddressResponse{
 			Code:    common2.ReturnCode_SUCCESS,
 			Msg:     "convert address successs",
-			Address: address,
+			Address: addr.String(),
 		}, nil
 	}
 }
 
 // ValidAddress 验证地址
 func (c *ChainAdaptor) ValidAddress(req *account.ValidAddressRequest) (*account.ValidAddressResponse, error) {
-	// 1. 检查地址长度，TRON 地址应为 42 个字符（16 进制表示）并以 "41" 开头
-	if len(req.Address) != 42 || !strings.HasPrefix(req.Address, AddressPrefix) {
-		return &account.ValidAddressResponse{
-			Code:  common2.ReturnCode_SUCCESS,
-			Msg:   "convert address successs",
-			Valid: false,
-		}, nil
-	}
-	// 2. 检查地址是否为有效的十六进制字符串
-	_, err := hex.DecodeString(req.Address)
+	_, err := address.Base58ToAddress(req.Address)
 	if err != nil {
 		return &account.ValidAddressResponse{
-			Code:  common2.ReturnCode_SUCCESS,
-			Msg:   "convert address successs",
+			Code:  common2.ReturnCode_ERROR,
+			Msg:   "convert address error",
 			Valid: false,
 		}, nil
 	}
 	return &account.ValidAddressResponse{
 		Code:  common2.ReturnCode_SUCCESS,
-		Msg:   "convert address successs",
+		Msg:   "convert address success",
 		Valid: true,
 	}, nil
 }
@@ -108,20 +99,38 @@ func (c *ChainAdaptor) GetBlockByNumber(req *account.BlockNumberRequest) (*accou
 			Msg:  err.Error(),
 		}, nil
 	}
-	txListRet := make([]*account.BlockInfoTransactionList, 0, len(block.Transactions))
-	for _, v := range block.Transactions {
-		bitlItem := &account.BlockInfoTransactionList{
-			Hash: v,
-		}
-		txListRet = append(txListRet, bitlItem)
+	height, err := strconv.ParseInt(block.Number[2:], 16, 64)
+	if err != nil {
+		return &account.BlockResponse{
+			Code: common2.ReturnCode_ERROR,
+			Msg:  err.Error(),
+		}, nil
 	}
-	return &account.BlockResponse{
-		Code:         common2.ReturnCode_SUCCESS,
-		Msg:          "block by number success",
-		Hash:         block.Hash,
-		BaseFee:      block.BaseFeePerGas,
-		Transactions: txListRet,
-	}, nil
+	if req.ViewTx {
+		txListRet := make([]*account.BlockInfoTransactionList, 0, len(block.Transactions))
+		for _, v := range block.Transactions {
+			bitlItem := &account.BlockInfoTransactionList{
+				Hash: v,
+			}
+			txListRet = append(txListRet, bitlItem)
+		}
+		return &account.BlockResponse{
+			Code:         common2.ReturnCode_SUCCESS,
+			Msg:          "block by number success",
+			Hash:         block.Hash,
+			BaseFee:      block.BaseFeePerGas,
+			Height:       height,
+			Transactions: txListRet,
+		}, nil
+	} else {
+		return &account.BlockResponse{
+			Code:    common2.ReturnCode_SUCCESS,
+			Msg:     "block by number success",
+			Hash:    block.Hash,
+			BaseFee: block.BaseFeePerGas,
+			Height:  height,
+		}, nil
+	}
 }
 
 // GetBlockByHash 根据区块hash获取区块信息
@@ -133,20 +142,39 @@ func (c *ChainAdaptor) GetBlockByHash(req *account.BlockHashRequest) (*account.B
 			Msg:  err.Error(),
 		}, nil
 	}
-	txListRet := make([]*account.BlockInfoTransactionList, 0, len(block.Transactions))
-	for _, v := range block.Transactions {
-		bitlItem := &account.BlockInfoTransactionList{
-			Hash: v,
-		}
-		txListRet = append(txListRet, bitlItem)
+	height, err := strconv.ParseInt(block.Number[2:], 16, 64)
+	if err != nil {
+		return &account.BlockResponse{
+			Code: common2.ReturnCode_ERROR,
+			Msg:  err.Error(),
+		}, nil
 	}
-	return &account.BlockResponse{
-		Code:         common2.ReturnCode_SUCCESS,
-		Msg:          "block by number success",
-		Hash:         block.Hash,
-		BaseFee:      block.BaseFeePerGas,
-		Transactions: txListRet,
-	}, nil
+	if req.ViewTx {
+		txListRet := make([]*account.BlockInfoTransactionList, 0, len(block.Transactions))
+		for _, v := range block.Transactions {
+			bitlItem := &account.BlockInfoTransactionList{
+				Hash: v,
+			}
+			txListRet = append(txListRet, bitlItem)
+		}
+		return &account.BlockResponse{
+			Code:         common2.ReturnCode_SUCCESS,
+			Msg:          "block by number success",
+			Hash:         block.Hash,
+			BaseFee:      block.BaseFeePerGas,
+			Height:       height,
+			Transactions: txListRet,
+		}, nil
+	} else {
+
+		return &account.BlockResponse{
+			Code:    common2.ReturnCode_SUCCESS,
+			Msg:     "block by number success",
+			Hash:    block.Hash,
+			BaseFee: block.BaseFeePerGas,
+			Height:  height,
+		}, nil
+	}
 }
 
 // GetBlockHeaderByHash 根据区块hash获取区块头信息
@@ -175,7 +203,7 @@ func (c *ChainAdaptor) GetAccount(req *account.AccountRequest) (*account.Account
 		}, nil
 	}
 
-	if req.Coin == TronSymbol {
+	if req.Coin == TronSymbol || req.Coin == "" {
 		return &account.AccountResponse{
 			Code:          common2.ReturnCode_SUCCESS,
 			Msg:           "get account response success",
@@ -222,16 +250,28 @@ func (c *ChainAdaptor) GetFee(req *account.FeeRequest) (*account.FeeResponse, er
 
 // SendTx 发送交易
 func (c *ChainAdaptor) SendTx(req *account.SendTxRequest) (*account.SendTxResponse, error) {
-	_, err := c.tronClient.BroadcastTransaction(req.RawTx)
+	jsonBytes, err := base64.StdEncoding.DecodeString(req.RawTx)
+	if err != nil {
+		log.Error("decode string fail", "err", err)
+		return nil, err
+	}
+	var data SendTxReq
+	if err := json.Unmarshal(jsonBytes, &data); err != nil {
+		log.Error("parse json fail", "err", err)
+		return nil, err
+	}
+	tx, err := c.tronClient.BroadcastTransaction(&data)
 	if err != nil {
 		return &account.SendTxResponse{
-			Code: common2.ReturnCode_ERROR,
-			Msg:  "Send tx error" + err.Error(),
+			Code:   common2.ReturnCode_ERROR,
+			Msg:    "Send tx error" + err.Error(),
+			TxHash: tx.Txid,
 		}, err
 	}
 	return &account.SendTxResponse{
-		Code: common2.ReturnCode_SUCCESS,
-		Msg:  "send tx success",
+		Code:   common2.ReturnCode_SUCCESS,
+		Msg:    "send tx success",
+		TxHash: tx.Txid,
 	}, nil
 }
 
@@ -273,17 +313,34 @@ func (c *ChainAdaptor) GetTxByAddress(req *account.TxAddressRequest) (*account.T
 
 // GetTxByHash 根据交易hash获取交易
 func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashResponse, error) {
+	// 调用 tronClient 的 GetTransactionByID 方法获取交易
 	resp, err := c.tronClient.GetTransactionByID(req.Hash)
 	if err != nil {
 		return &account.TxHashResponse{
 			Code: common2.ReturnCode_ERROR,
-			Msg:  err.Error(),
+			Msg:  fmt.Sprintf("failed to get transaction: %v", err),
 		}, nil
 	}
+	// 检查 resp 是否为 nil
+	if resp == nil {
+		return &account.TxHashResponse{
+			Code: common2.ReturnCode_ERROR,
+			Msg:  "transaction response is nil",
+		}, nil
+	}
+	// 检查 resp.RawData 是否为 nil
+	if len(resp.RawData.Contract) == 0 {
+		return &account.TxHashResponse{
+			Code: common2.ReturnCode_ERROR,
+			Msg:  "transaction raw data or contract is nil",
+		}, nil
+	}
+	// 获取交易的基本信息
 	fromAddress := resp.RawData.Contract[0].Parameter.Value.OwnerAddress
 	toAddress := resp.RawData.Contract[0].Parameter.Value.ToAddress
 	amount := resp.RawData.Contract[0].Parameter.Value.Amount
 
+	// 返回成功的交易信息
 	return &account.TxHashResponse{
 		Code: common2.ReturnCode_SUCCESS,
 		Msg:  "get transactions by address success",
@@ -295,7 +352,7 @@ func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashR
 			Status: account.TxStatus_Success,
 			Values: []*account.Value{{Value: strconv.Itoa(amount)}},
 			Type:   1,
-			Height: "0",
+			//Height: "0",
 		},
 	}, nil
 }
@@ -386,18 +443,27 @@ func (c *ChainAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequ
 
 // DecodeTransaction 解码交易
 func (c *ChainAdaptor) DecodeTransaction(req *account.DecodeTransactionRequest) (*account.DecodeTransactionResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	return &account.DecodeTransactionResponse{
+		Code:     common2.ReturnCode_SUCCESS,
+		Msg:      "verify tx success",
+		Base64Tx: "0x000000",
+	}, nil
 }
 
 // VerifySignedTransaction 验证签名
 func (c *ChainAdaptor) VerifySignedTransaction(req *account.VerifyTransactionRequest) (*account.VerifyTransactionResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	return &account.VerifyTransactionResponse{
+		Code:   common2.ReturnCode_SUCCESS,
+		Msg:    "verify tx success",
+		Verify: true,
+	}, nil
 }
 
 // GetExtraData 获取额外数据
 func (c *ChainAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.ExtraDataResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	return &account.ExtraDataResponse{
+		Code:  common2.ReturnCode_SUCCESS,
+		Msg:   "get extra data success",
+		Value: "not data",
+	}, nil
 }

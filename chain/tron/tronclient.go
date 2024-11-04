@@ -2,11 +2,9 @@ package tron
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/log"
 	"io/ioutil"
 	"net/http"
 )
@@ -97,28 +95,28 @@ func (client *TronClient) PostWallet(method string, params map[string]interface{
 //	return client.processResponse(resp)
 //}
 
-// GetSolidity 使用 GET 方法发送 JSON-RPC 请求，参数以 JSON 格式放入请求体中
-func (client *TronClient) GetSolidity(method string, params map[string]interface{}) (json.RawMessage, error) {
-	// 构造 JSON-RPC 请求体
-	requestBody, err := json.Marshal(params)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request: %v", err)
-	}
-	// 创建 GET 请求，并将 JSON 放入请求体
-	req, err := http.NewRequest("GET", client.rpcURL+"/walletsolidity/"+method, bytes.NewBuffer(requestBody))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GET request: %v", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("GET request failed: %v", err)
-	}
-	defer resp.Body.Close()
-
-	return client.processResponse(resp)
-}
+//// GetSolidity 使用 GET 方法发送 JSON-RPC 请求，参数以 JSON 格式放入请求体中
+//func (client *TronClient) GetSolidity(method string, params map[string]interface{}) (json.RawMessage, error) {
+//	// 构造 JSON-RPC 请求体
+//	requestBody, err := json.Marshal(params)
+//	if err != nil {
+//		return nil, fmt.Errorf("failed to marshal request: %v", err)
+//	}
+//	// 创建 GET 请求，并将 JSON 放入请求体
+//	req, err := http.NewRequest("GET", client.rpcURL+"/walletsolidity/"+method, bytes.NewBuffer(requestBody))
+//	if err != nil {
+//		return nil, fmt.Errorf("failed to create GET request: %v", err)
+//	}
+//	req.Header.Set("Content-Type", "application/json")
+//
+//	resp, err := http.DefaultClient.Do(req)
+//	if err != nil {
+//		return nil, fmt.Errorf("GET request failed: %v", err)
+//	}
+//	defer resp.Body.Close()
+//
+//	return client.processResponse(resp)
+//}
 
 // processResponse 处理通用的 HTTP 响应解析逻辑
 func (client *TronClient) processResponse(resp *http.Response) (json.RawMessage, error) {
@@ -150,12 +148,11 @@ func (client *TronClient) GetBlockByNumber(blockNumber int64) (*Block, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get block by number: %v", err)
 	}
-
-	var blockInfo Block
-	if err := json.Unmarshal(result, &blockInfo); err != nil {
+	var response Response[Block]
+	if err := json.Unmarshal(result, &response); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal block info: %v", err)
 	}
-	return &blockInfo, nil
+	return &response.Result, nil
 }
 
 // GetBlockByHash 根据区块哈希获取区块信息
@@ -166,11 +163,11 @@ func (client *TronClient) GetBlockByHash(blockHash string) (*Block, error) {
 		return nil, fmt.Errorf("failed to get block by hash: %v", err)
 
 	}
-	var blockInfo Block
-	if err := json.Unmarshal(result, &blockInfo); err != nil {
+	var response Response[Block]
+	if err := json.Unmarshal(result, &response); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal block info: %v", err)
 	}
-	return &blockInfo, nil
+	return &response.Result, nil
 }
 
 // GetAccount 根据地址获取账户信息
@@ -210,9 +207,10 @@ func (client *TronClient) GetTxByAddress(address string) (interface{}, error) {
 // GetTransactionByID 根据交易哈希获取交易信息
 func (client *TronClient) GetTransactionByID(txHash string) (*Transaction, error) {
 	params := map[string]interface{}{
-		"hash": txHash,
+		"value":   txHash,
+		"visible": true,
 	}
-	result, err := client.PostSolidity("gettransactionbyid", params)
+	result, err := client.PostWallet("gettransactionbyid", params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tx by id: %v", err)
 	}
@@ -229,6 +227,7 @@ func (client *TronClient) CreateTRXTransaction(from, to string, amount int64) (*
 		"owner_address": from,
 		"to_address":    to,
 		"amount":        amount,
+		"visible":       true,
 	}
 
 	// 调用 createtransaction API 创建 TRX 交易
@@ -265,6 +264,8 @@ func (client *TronClient) CreateTRC20Transaction(from, to, contractAddress strin
 		"function_selector": "transfer(address,uint256)",
 		"parameter":         parameter,
 		"fee_limit":         100000000, // 手续费上限
+		"call_value":        amount,
+		"visible":           true,
 	}
 
 	// 调用 triggersmartcontract API 创建代币交易
@@ -273,27 +274,22 @@ func (client *TronClient) CreateTRC20Transaction(from, to, contractAddress strin
 		return nil, fmt.Errorf("failed to create TRC20 transaction: %v", err)
 	}
 
-	var txInfo UnSignTransaction
+	var txInfo UnSignTrc20Transaction
 	if err := json.Unmarshal(result, &txInfo); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal TRC20 transaction info: %v", err)
 	}
-	return &txInfo, nil
+	return &txInfo.Transaction, nil
 }
 
 // BroadcastTransaction 广播交易
-func (client *TronClient) BroadcastTransaction(raw string) (*BroadcastReturns, error) {
-	jsonBytes, err := base64.StdEncoding.DecodeString(raw)
-	if err != nil {
-		log.Error("decode string fail", "err", err)
-		return nil, err
-	}
-	var data map[string]interface{}
-	if err := json.Unmarshal(jsonBytes, &data); err != nil {
-		log.Error("parse json fail", "err", err)
-		return nil, err
+func (client *TronClient) BroadcastTransaction(raw *SendTxReq) (*BroadcastReturns, error) {
+	// 创建请求参数
+	params := map[string]interface{}{
+		"raw_data":     raw.RawData,
+		"raw_data_hex": raw.RawDataHex,
 	}
 	// 调用 broadcast transaction API 广播交易
-	result, err := client.PostWallet("broadcasttransaction", data)
+	result, err := client.PostWallet("broadcasttransaction", params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to broadcast transaction: %v", err)
 
