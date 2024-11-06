@@ -2,8 +2,6 @@ package chaindispatcher
 
 import (
 	"context"
-	"github.com/dapplink-labs/wallet-chain-account/chain/sui"
-	"github.com/dapplink-labs/wallet-chain-account/chain/tron"
 	"runtime/debug"
 	"strings"
 
@@ -18,6 +16,8 @@ import (
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/common"
+  "github.com/dapplink-labs/wallet-chain-account/chain/solana"
+	"github.com/dapplink-labs/wallet-chain-account/chain/tron"
 )
 
 type CommonRequest interface {
@@ -38,14 +38,14 @@ func New(conf *config.Config) (*ChainDispatcher, error) {
 	}
 	chainAdaptorFactoryMap := map[string]func(conf *config.Config) (chain.IChainAdaptor, error){
 		ethereum.ChainName: ethereum.NewChainAdaptor,
+		solana.ChainName:   solana.NewChainAdaptor,
 		tron.ChainName:     tron.NewChainAdaptor,
-		sui.ChainName:      sui.NewSuiAdaptor,
 	}
 
 	supportedChains := []string{
 		ethereum.ChainName,
+		solana.ChainName,
 		tron.ChainName,
-		sui.ChainName,
 	}
 
 	for _, c := range conf.Chains {

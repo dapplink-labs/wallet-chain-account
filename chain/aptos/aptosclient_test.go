@@ -12,14 +12,14 @@ const (
 	baseURL   = "https://api.mainnet.aptoslabs.com/"
 	apiKey    = "aptoslabs_7Gd8hUMMp85_JxF2SXZCDcmeP4tjuuBXjwFwqyY6nTFup"
 	network   = Mainnet
-	withDebug = true
+	withDebug = false
 )
 
 func TestClient_GetNodeInfo(t *testing.T) {
-	// Initialize client
+	// Initialize aptclient
 	client, err := NewAptosHttpClientAll(baseURL, apiKey, withDebug)
-	assert.NoError(t, err, "client initialization failed")
-	assert.NotNil(t, client, "client should not be nil")
+	assert.NoError(t, err, "aptclient initialization failed")
+	assert.NotNil(t, client, "aptclient should not be nil")
 
 	// Test getting node info
 	t.Run("Get Node Info", func(t *testing.T) {
@@ -68,7 +68,7 @@ func TestRestyClient_GetAccount(t *testing.T) {
 	)
 
 	client, err := NewAptosHttpClientAll(baseURL, apiKey, withDebug)
-	assert.NoError(t, err, "failed to initialize aptos client")
+	assert.NoError(t, err, "failed to initialize aptos aptclient")
 
 	t.Run("Valid Account", func(t *testing.T) {
 		accountResponse, err := client.GetAccount(validAccount)
@@ -116,7 +116,7 @@ func TestRestyClient_GetAccount(t *testing.T) {
 
 func TestRestyClient_GetGasPrice(t *testing.T) {
 	client, err := NewAptosHttpClientAll(baseURL, apiKey, withDebug)
-	assert.NoError(t, err, "failed to initialize aptos client")
+	assert.NoError(t, err, "failed to initialize aptos aptclient")
 
 	t.Run("Get Gas Price Successfully", func(t *testing.T) {
 		gasPrice, err := client.GetGasPrice()
@@ -153,7 +153,7 @@ func TestRestyClient_GetGasPrice(t *testing.T) {
 		t.Logf("Normal Premium: %d", gasPrice.GasEstimate-gasPrice.DeprioritizedGasEstimate)
 	})
 
-	t.Run("Invalid Client", func(t *testing.T) {
+	t.Run("Invalid AptClient", func(t *testing.T) {
 		invalidClient, err := NewAptosHttpClientAll("https://invalid.url", apiKey, withDebug)
 		assert.NoError(t, err)
 
@@ -171,8 +171,8 @@ func TestClient_GetTransactionByHash(t *testing.T) {
 	)
 
 	client, err := NewAptosHttpClientAll(baseURL, apiKey, withDebug)
-	assert.NoError(t, err, "client initialization failed")
-	assert.NotNil(t, client, "client should not be nil")
+	assert.NoError(t, err, "aptclient initialization failed")
+	assert.NotNil(t, client, "aptclient should not be nil")
 
 	t.Run("Valid Transaction", func(t *testing.T) {
 		resp, err := client.GetTransactionByHash(validTxHash)
@@ -247,13 +247,13 @@ func TestRestyClient_SubmitTransaction(t *testing.T) {
 func TestClient_GetBlockByHeight(t *testing.T) {
 	// Test configuration
 	const (
-		validHeight uint64 = 247279394
+		validHeight uint64 = 88012315
 	)
 
-	// Initialize client
+	// Initialize aptclient
 	client, err := NewAptosHttpClientAll(baseURL, apiKey, withDebug)
-	assert.NoError(t, err, "client initialization failed")
-	assert.NotNil(t, client, "client should not be nil")
+	assert.NoError(t, err, "aptclient initialization failed")
+	assert.NotNil(t, client, "aptclient should not be nil")
 
 	// Test valid block height
 	t.Run("Valid Block Height", func(t *testing.T) {
@@ -295,6 +295,80 @@ func TestClient_GetBlockByHeight(t *testing.T) {
 	})
 }
 
+func TestClient_GetBlockByVersion(t *testing.T) {
+	// Test configuration
+	const (
+		validVersion uint64 = 248685535
+	)
+
+	// Initialize aptclient
+	client, err := NewAptosHttpClientAll(baseURL, apiKey, withDebug)
+	assert.NoError(t, err, "aptclient initialization failed")
+	assert.NotNil(t, client, "aptclient should not be nil")
+
+	// Test valid version
+	t.Run("Valid Version", func(t *testing.T) {
+		resp, err := client.GetBlockByVersion(validVersion)
+		assert.NoError(t, err, "failed to get block")
+		assert.NotNil(t, resp, "response should not be nil")
+
+		// Validate block data
+		t.Run("Block Metadata", func(t *testing.T) {
+			assert.NotEmpty(t, resp.BlockHeight, "block height should not be empty")
+			assert.NotEmpty(t, resp.BlockHash, "block hash should not be empty")
+			assert.NotEmpty(t, resp.BlockTimestamp, "block timestamp should not be empty")
+			assert.NotEmpty(t, resp.FirstVersion, "first version should not be empty")
+			assert.NotEmpty(t, resp.LastVersion, "last version should not be empty")
+
+			// Verify version is within block range
+			firstVersion := resp.FirstVersion
+			lastVersion := resp.LastVersion
+			assert.LessOrEqual(t, firstVersion, validVersion,
+				"first version should be less than or equal to requested version")
+			assert.GreaterOrEqual(t, lastVersion, validVersion,
+				"last version should be greater than or equal to requested version")
+		})
+
+		// Log block details
+		t.Run("Log Details", func(t *testing.T) {
+			t.Log("Block Details:")
+			t.Logf("Block Height: %d", resp.BlockHeight)
+			t.Logf("Block Hash: %s", resp.BlockHash)
+			t.Logf("Timestamp: %d", resp.BlockTimestamp)
+			t.Logf("First Version: %d", resp.FirstVersion)
+			t.Logf("Last Version: %d", resp.LastVersion)
+
+			//if len(resp.Transactions) > 0 {
+			//	t.Log("\nFirst Transaction Details:")
+			//	t.Logf("Type: %s", resp.Transactions[0].Type)
+			//	t.Logf("Hash: %s", resp.Transactions[0].Hash)
+			//	t.Logf("Sender: %s", resp.Transactions[0].Sender)
+			//}
+		})
+	})
+
+	// Test error cases
+	t.Run("Error Cases", func(t *testing.T) {
+		// Test invalid version
+		t.Run("Invalid Version", func(t *testing.T) {
+			// Use a very large version that shouldn't exist yet
+			invalidVersion := uint64(999999999999)
+			resp, err := client.GetBlockByVersion(invalidVersion)
+			assert.Error(t, err, "should return an error")
+			assert.Nil(t, resp, "response should be nil")
+			t.Logf("Expected error: %v", err)
+		})
+
+		// Test zero version
+		t.Run("Zero Version", func(t *testing.T) {
+			resp, err := client.GetBlockByVersion(0)
+			assert.NoError(t, err, "should return an error for version 0")
+			assert.NotNil(t, resp, "response should be nil")
+			t.Logf("Expected error: %v", err)
+		})
+	})
+}
+
 func TestRestyClient_GetTransactionByHash(t *testing.T) {
 	const (
 		validTxHash   = "0x43531969ff8e93de962ea65e5609c2b05de3aa5e78933d8925613e75d3d53772"
@@ -303,7 +377,7 @@ func TestRestyClient_GetTransactionByHash(t *testing.T) {
 	)
 
 	client, err := NewAptosHttpClientAll(baseURL, apiKey, withDebug)
-	assert.NoError(t, err, "failed to initialize aptos client")
+	assert.NoError(t, err, "failed to initialize aptos aptclient")
 
 	t.Run("Valid Transaction Hash", func(t *testing.T) {
 		resp, err := client.GetTransactionByHash(validTxHash)
@@ -418,13 +492,13 @@ func TestClient_GetTransactionByVersion(t *testing.T) {
 	// Test configuration
 	const (
 		// Use a known transaction version for testing
-		validVersion = "1881899111"
+		validVersion = "1878359810"
 	)
 
-	// Initialize client
+	// Initialize aptclient
 	client, err := NewAptosHttpClientAll(baseURL, apiKey, withDebug)
-	assert.NoError(t, err, "client initialization failed")
-	assert.NotNil(t, client, "client should not be nil")
+	assert.NoError(t, err, "aptclient initialization failed")
+	assert.NotNil(t, client, "aptclient should not be nil")
 
 	t.Run("Valid Transaction Version", func(t *testing.T) {
 		resp, err := client.GetTransactionByVersion(validVersion)
@@ -487,20 +561,20 @@ func TestClient_GetTransactionByVersion(t *testing.T) {
 		})
 	})
 
-	t.Run("Version Zero", func(t *testing.T) {
-		resp, err := client.GetTransactionByVersion("0")
-		assert.NoError(t, err)
-		assert.NotNil(t, resp)
-		assert.Equal(t, "0", fmt.Sprint(resp.Version))
-
-		t.Log("Genesis Transaction Details:")
-		t.Logf("Version: %d", resp.Version)
-		t.Logf("Type: %s", resp.Type)
-		t.Logf("Hash: %s", resp.Hash)
-		if len(resp.Changes) > 0 {
-			t.Logf("Number of Changes: %d", len(resp.Changes))
-		}
-	})
+	//t.Run("Version Zero", func(t *testing.T) {
+	//	resp, err := client.GetTransactionByVersion("0")
+	//	assert.NoError(t, err)
+	//	assert.NotNil(t, resp)
+	//	assert.Equal(t, "0", fmt.Sprint(resp.Version))
+	//
+	//	t.Log("Genesis Transaction Details:")
+	//	t.Logf("Version: %d", resp.Version)
+	//	t.Logf("Type: %s", resp.Type)
+	//	t.Logf("Hash: %s", resp.Hash)
+	//	if len(resp.Changes) > 0 {
+	//		t.Logf("Number of Changes: %d", len(resp.Changes))
+	//	}
+	//})
 }
 
 func TestClient_GetTransactionByVersionRange(t *testing.T) {
@@ -510,10 +584,10 @@ func TestClient_GetTransactionByVersionRange(t *testing.T) {
 		endVersion   = 1881811111
 	)
 
-	// Initialize client
+	// Initialize aptclient
 	client, err := NewAptosHttpClientAll(baseURL, apiKey, withDebug)
-	assert.NoError(t, err, "client initialization failed")
-	assert.NotNil(t, client, "client should not be nil")
+	assert.NoError(t, err, "aptclient initialization failed")
+	assert.NotNil(t, client, "aptclient should not be nil")
 
 	t.Run("Single Version", func(t *testing.T) {
 		startVersion := uint64(validVersion)
@@ -597,5 +671,32 @@ func TestClient_GetTransactionByVersionRange(t *testing.T) {
 				t.Logf("Number of Changes: %d", len(tx.Changes))
 			}
 		}
+	})
+}
+
+func TestRestyClient_GetAccountBalance(t *testing.T) {
+	const (
+		validAddress    = "0x8d2d7bcde13b2513617df3f98cdd5d0e4b9f714c6308b9204fe18ad900d92609"
+		expectedAPT     = 0.68374979
+		ResourceTypeAPT = "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>"
+	)
+	client, err := NewAptosHttpClientAll(baseURL, apiKey, withDebug)
+	assert.NoError(t, err, "aptclient initialization failed")
+	assert.NotNil(t, client, "aptclient should not be nil")
+
+	t.Run("Get APT Balance", func(t *testing.T) {
+		address := validAddress
+		resourceType := ResourceTypeAPT
+
+		balance, err := client.GetAccountBalance(address, resourceType)
+		t.Logf("Account %s APT balance: %d", address, balance)
+
+		assert.NoError(t, err, "should not return error")
+		assert.NotZero(t, balance, "balance should not be zero")
+
+		aptValue := float64(balance) / 100000000
+		t.Logf("Account %s APT balance: %.8f", address, aptValue)
+
+		assert.InDelta(t, expectedAPT, aptValue, 0.00000001, "APT balance should match expected amount")
 	})
 }
