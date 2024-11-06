@@ -2,6 +2,7 @@ package chaindispatcher
 
 import (
 	"context"
+	"github.com/dapplink-labs/wallet-chain-account/chain/solana"
 	"runtime/debug"
 	"strings"
 
@@ -36,10 +37,12 @@ func New(conf *config.Config) (*ChainDispatcher, error) {
 	}
 	chainAdaptorFactoryMap := map[string]func(conf *config.Config) (chain.IChainAdaptor, error){
 		ethereum.ChainName: ethereum.NewChainAdaptor,
+		solana.ChainName:   solana.NewChainAdaptor,
 	}
 
 	supportedChains := []string{
 		ethereum.ChainName,
+		solana.ChainName,
 	}
 
 	for _, c := range conf.Chains {
