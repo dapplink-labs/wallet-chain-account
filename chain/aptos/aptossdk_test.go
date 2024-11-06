@@ -1,12 +1,16 @@
 package aptos
 
 import (
+	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"testing"
+
 	"github.com/aptos-labs/aptos-go-sdk"
 	"github.com/aptos-labs/aptos-go-sdk/crypto"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestCreateDifferentAccounts(t *testing.T) {
@@ -111,9 +115,9 @@ func TestValidateAptosAddress(t *testing.T) {
 }
 
 func TestAptosTransfer(t *testing.T) {
-	// Create client
+	// Create aptclient
 	client, err := aptos.NewClient(aptos.DevnetConfig)
-	assert.NoError(t, err, "Failed to create client")
+	assert.NoError(t, err, "Failed to create aptclient")
 
 	// Create test accounts with alice
 	alice, err := aptos.NewEd25519Account()
@@ -147,13 +151,17 @@ func TestAptosTransfer(t *testing.T) {
 
 	simulationResult, err := client.SimulateTransaction(rawTxn, alice)
 	assert.NoError(t, err, "simulationResult fail")
-	assert.Equal(t, "Executed simulationResult successfully", simulationResult[0].VmStatus, "simulationResult fail")
+	assert.Equal(t, "Executed successfully", simulationResult[0].VmStatus, "simulationResult fail")
 	t.Logf("simulationResult success, emit gas fee: %d", simulationResult[0].GasUsed)
 
 	signedTxn, err := rawTxn.SignedTransaction(alice)
 	assert.NoError(t, err, "SignedTransaction fail ")
 	signedTxn11, _ := json.Marshal(signedTxn)
 	fmt.Printf("signedTxn11: %s\n", signedTxn11)
+
+	flag, msg := VerifySignedTxn(signedTxn)
+	fmt.Printf("VerifySignedTxn flag: %v\n", flag)
+	fmt.Printf("VerifySignedTxn msg: %s\n", msg)
 
 	submitResult, err := client.SubmitTransaction(signedTxn)
 	assert.NoError(t, err, "submitResult fail")
@@ -174,4 +182,144 @@ func TestAptosTransfer(t *testing.T) {
 	t.Logf("transfer newAliceBalance: %d APT", newAliceBalance)
 	t.Logf("transfer Bob fee: %d APT", bobBalance)
 	t.Logf("normal gas fee: %d", aliceBalance-transferAmount-newAliceBalance)
+}
+
+// VerifySignedTxn
+func VerifySignedTxn(signedTxn *aptos.SignedTransaction) (bool, string) {
+	var messages []string
+	isValid := true
+
+	rawTxn, ok := signedTxn.Transaction.(*aptos.RawTransaction)
+	if !ok {
+		return false, "signedTxn Transaction error"
+	}
+
+	signingMessage, err := rawTxn.SigningMessage()
+	if err != nil {
+		return false, "SigningMessage err"
+	}
+
+	auth := signedTxn.Authenticator.Auth
+	authJson, _ := json.Marshal(auth)
+	fmt.Printf("authJson Json: %s\n", authJson)
+	fmt.Printf("Type of auth: %T\n", auth)
+
+	if senderAuth, ok := auth.(*aptos.Ed25519TransactionAuthenticator); ok {
+		if ed25519Auth, ok := senderAuth.Sender.Auth.(*crypto.Ed25519Authenticator); ok {
+			// Step 1: Derive account address from the public key in signedTxn.Authenticator.Auth
+			accountAddress, err := PubKeyToAccountAddress(ed25519Auth.PubKey)
+			if err != nil {
+				return false, "failed to derive address from public key"
+			}
+			// Step 2: Verify if the derived address matches the sender address in raw transaction
+			// This ensures the transaction is truly from the claimed sender
+			// rawTxn.Sender from rawTxn, this is req.Sender.address
+			// accountAddress from signedTxn.Authenticator.Auth, this is signedTxn.address
+			if *accountAddress != rawTxn.Sender {
+				isValid = false
+				messages = append(messages, fmt.Sprintf("sender address mismatch\nexpected: %s\nactual: %s",
+					accountAddress.String(), rawTxn.Sender.String()))
+			}
+
+			// Verify if the signature is valid for this transaction
+			// ed25519Auth.PubKey: the public key of the signer
+			// Parameters:
+			// - signingMessage: the original transaction data to be signed
+			// - ed25519Auth.Sig: the signature created by the private key
+			if !ed25519Auth.PubKey.Verify(signingMessage, ed25519Auth.Sig) {
+				isValid = false
+				messages = append(messages, "invalid signature")
+			}
+		} else {
+			return false, "invalid ed25519 authenticator type"
+		}
+	} else {
+		return false, "invalid sender authenticator type"
+	}
+
+	// Step 4: Verify transaction basic parameters
+	messages = append(messages, fmt.Sprintf("\n=== Transaction Parameters ==="+
+		"\nSender Address: %s"+
+		"\nSequence Number: %d"+
+		"\nGas Limit: %d"+
+		"\nGas Unit Price: %d"+
+		"\nExpiration Time: %d"+
+		"\nChain ID: %d",
+		rawTxn.Sender.String(),
+		rawTxn.SequenceNumber,
+		rawTxn.MaxGasAmount,
+		rawTxn.GasUnitPrice,
+		rawTxn.ExpirationTimestampSeconds,
+		rawTxn.ChainId))
+
+	payloadJson, _ := json.Marshal(rawTxn.Payload)
+	fmt.Printf("Payload Json: %s\n", payloadJson)
+	fmt.Printf("Type of rawTxn.Payload: %T\n", rawTxn.Payload)
+	fmt.Printf("Type of rawTxn.Payload.Payload: %T\n", rawTxn.Payload.Payload)
+
+	// Step 5: Verify transfer parameters if it's a transfer transaction
+	if entryFunction, ok := rawTxn.Payload.Payload.(*aptos.EntryFunction); ok {
+		messages = append(messages, "\n=== Transfer Parameters ===")
+
+		// 1. Verify module and function name
+		if entryFunction.Module.Name != "aptos_account" {
+			isValid = false
+			messages = append(messages, "invalid module name")
+		}
+		if entryFunction.Function != "transfer" {
+			isValid = false
+			messages = append(messages, "invalid function name")
+		}
+
+		// 2. Verify arguments length
+		if len(entryFunction.Args) < 2 {
+			isValid = false
+			messages = append(messages, "insufficient transfer arguments")
+			return isValid, strings.Join(messages, "\n")
+		}
+
+		// 3. Verify recipient address
+		toAddrBytes := entryFunction.Args[0]
+		if len(toAddrBytes) != 32 { // Aptos address length
+			isValid = false
+			messages = append(messages, "invalid recipient address length")
+		}
+		messages = append(messages, fmt.Sprintf("Recipient Address (bytes): %x", toAddrBytes))
+
+		// 4. Verify transfer amount
+		amountBytes := entryFunction.Args[1]
+		if len(amountBytes) != 8 { // uint64 length
+			isValid = false
+			messages = append(messages, "invalid amount format")
+		}
+		amount := binary.LittleEndian.Uint64(amountBytes)
+
+		// Check amount constraints
+		if amount == 0 {
+			isValid = false
+			messages = append(messages, "transfer amount cannot be zero")
+		}
+		// 可以添加最大金额限制
+		const MAX_TRANSFER_AMOUNT = uint64(1000000000000) // 示例值
+		if amount > MAX_TRANSFER_AMOUNT {
+			isValid = false
+			messages = append(messages, fmt.Sprintf("transfer amount exceeds maximum limit: %d", MAX_TRANSFER_AMOUNT))
+		}
+		messages = append(messages, fmt.Sprintf("Transfer Amount: %d", amount))
+
+		// 5. Verify sender has sufficient balance (需要查询链上数据)
+		// totalRequired := amount + (rawTxn.MaxGasAmount * rawTxn.GasUnitPrice)
+		// if senderBalance < totalRequired {
+		//     isValid = false
+		//     messages = append(messages, "insufficient balance for transfer and gas")
+		// }
+
+		// 6. Verify recipient address is valid
+		if bytes.Equal(toAddrBytes, rawTxn.Sender[:]) {
+			isValid = false
+			messages = append(messages, "cannot transfer to self")
+		}
+	}
+
+	return isValid, strings.Join(messages, "\n")
 }
