@@ -62,6 +62,7 @@ func (c *ChainAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*acc
 func (c *ChainAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account.ConvertAddressResponse, error) {
 	publicKeyBytes, err := hex.DecodeString(req.PublicKey)
 	if err != nil {
+		log.Error("decode public key failed:", err)
 		return &account.ConvertAddressResponse{
 			Code:    common2.ReturnCode_ERROR,
 			Msg:     "convert address fail",

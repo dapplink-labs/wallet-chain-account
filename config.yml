@@ -3,7 +3,8 @@ server:
 
 network: mainnet
 
-chains: [Ethereum,Tron]
+chains: [Ethereum,Solana,Tron]
+
 
 wallet_node:
   eth:
@@ -14,6 +15,18 @@ wallet_node:
     data_api_key: 'HZEZGEPJJDA633N421AYW9NE8JFNZZC7JT'
     data_api_token: ''
     time_out: 100
+
+  solana:
+    rpcs:
+      - rpc_url: 'https://go.getblock.io/0b210f6491324f969c052746cce6c0dd'
+    tp_api_url: 'https://public-api.solscan.io'
+    network: "mainnet"
+    NonceAccountAddr: DJyNpXgggw1WGgjTVzFsNjb3fuQZVMqhoakvSBfX9LYx
+    FeeAccountPriKey: 4TMFNY9ntAn3CHzguSAvDNLPRoQTaK3sWbQQXdDXaE6KWRBLufGL6PJdsD2koiEe3gGmMdRK3aAw7sikGNksHJrN
+    solScanApiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdGVkQXQiOjE3MjQwNjIxMzk5MDYsImVtYWlsIjoiemFja2d1by5ndW9AZ21haWwuY29tIiwiYWN0aW9uIjoidG9rZW4tYXBpIiwiYXBpVmVyc2lvbiI6InYxIiwiaWF0IjoxNzI0MDYyMTM5fQ.EaWDC25lyGNx_LqRL5sAYYKLMbq10brnexKnAz9C3UY'
+    solScanBaseUrl: 'https://pro-api.solscan.io'
+    solScanBaseTimeout: 20s
+
   tron:
     rpcs:
       - rpc_url: 'https://api.trongrid.io'
@@ -24,3 +37,4 @@ wallet_node:
     data_api_key: '5181d535-b68f-41cf-bbc6-25905e46b6a6'
     data_api_token: ''
     time_out: 100
+
