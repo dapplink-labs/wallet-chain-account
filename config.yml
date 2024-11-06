@@ -3,7 +3,7 @@ server:
 
 network: mainnet
 
-chains: [Ethereum,Solana,Tron]
+chains: [Ethereum,Solana,Tron,Sui]
 
 
 wallet_node:
