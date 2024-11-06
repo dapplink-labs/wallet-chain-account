@@ -3,9 +3,10 @@ package aptos
 import (
 	"encoding/hex"
 	"fmt"
+	"strings"
+
 	"github.com/aptos-labs/aptos-go-sdk"
 	"github.com/aptos-labs/aptos-go-sdk/crypto"
-	"strings"
 )
 
 type Environment string
@@ -29,7 +30,7 @@ func NewAptosClient(networkConfig string) (*aptos.Client, error) {
 
 	client, err := NewAptosClientEnv(aptosEnv)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Aptos client: %w", err)
+		return nil, fmt.Errorf("failed to create Aptos aptclient: %w", err)
 	}
 
 	return client, nil
@@ -67,6 +68,94 @@ func ConvertEnvironment(network string) (Environment, bool) {
 	return env, exists
 }
 
+func PrivateKeyToPrivateKey(privateKeyHex string) (*crypto.Ed25519PrivateKey, error) {
+	privateKeyHex = strings.TrimPrefix(privateKeyHex, "0x")
+
+	privKey := &crypto.Ed25519PrivateKey{}
+
+	err := privKey.FromHex(privateKeyHex)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create private key from hex: %w", err)
+	}
+
+	return privKey, nil
+}
+
+func PrivateKeyToPubKey(privateKey *crypto.Ed25519PrivateKey) (*crypto.Ed25519PublicKey, error) {
+	publicKey := privateKey.PubKey().(*crypto.Ed25519PublicKey)
+	return publicKey, nil
+}
+
+func PrivateKeyHexToPubKey(privateKeyHex string) (*crypto.Ed25519PublicKey, error) {
+	ed25519PrivateKey, err := PrivateKeyToPrivateKey(privateKeyHex)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create private key from hex: %w", err)
+	}
+	publicKey := ed25519PrivateKey.PubKey().(*crypto.Ed25519PublicKey)
+	return publicKey, nil
+}
+
+func PubKeyHexToPubKey(publicKeyHex string) (*crypto.Ed25519PublicKey, error) {
+	publicKeyHex = strings.TrimPrefix(publicKeyHex, "0x")
+	pubKeyBytes, err := hex.DecodeString(publicKeyHex)
+	if err != nil {
+		return nil, fmt.Errorf("decode public key failed: %w", err)
+	}
+	publicKey := &crypto.Ed25519PublicKey{}
+	err = publicKey.FromBytes(pubKeyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("create public key failed: %w", err)
+	}
+	return publicKey, nil
+}
+
+func PubKeyToPubKeyHex(publicKey *crypto.Ed25519PublicKey) (string, error) {
+	return publicKey.ToHex(), nil
+}
+
+func PubKeyToAddress(publicKey *crypto.Ed25519PublicKey) (string, error) {
+	authKey := publicKey.AuthKey()
+	address := "0x" + hex.EncodeToString(authKey[:])
+	return address, nil
+}
+
+func PubKeyHexToAddress(publicKeyHex string) (string, error) {
+	ed25519PublicKey, err := PubKeyHexToPubKey(publicKeyHex)
+	if err != nil {
+		return "", fmt.Errorf("create public key failed: %w", err)
+	}
+	authKey := ed25519PublicKey.AuthKey()
+
+	address := "0x" + hex.EncodeToString(authKey[:])
+
+	return address, nil
+}
+
+func PubKeyToAccountAddress(publicKey *crypto.Ed25519PublicKey) (*aptos.AccountAddress, error) {
+	authKey := publicKey.AuthKey()
+	address := aptos.AccountAddress{}
+	copy(address[:], authKey[:])
+	return &address, nil
+}
+
+func PubKeyHexToAccountAddress(publicKeyHex string) (*aptos.AccountAddress, error) {
+	ed25519PublicKey, err := PubKeyHexToPubKey(publicKeyHex)
+	if err != nil {
+		return nil, fmt.Errorf("create public key failed: %w", err)
+	}
+
+	authKey := &crypto.AuthenticationKey{}
+	authKey.FromPublicKey(ed25519PublicKey)
+	address := &aptos.AccountAddress{}
+	address.FromAuthKey(authKey)
+	return address, nil
+
+	//authKey := ed25519PublicKey.AuthKey()
+	//address := aptos.AccountAddress{}
+	//copy(address[:], authKey[:])
+	//return &address, nil
+}
+
 func AddressToAccountAddress(address string) (aptos.AccountAddress, error) {
 	address = strings.TrimPrefix(address, "0x")
 
@@ -83,17 +172,4 @@ func AddressToAccountAddress(address string) (aptos.AccountAddress, error) {
 	copy(accountAddress[:], bytes)
 
 	return accountAddress, nil
-}
-
-func PrivateKeyToPrivateKey(privateKey string) (*crypto.Ed25519PrivateKey, error) {
-	privateKey = strings.TrimPrefix(privateKey, "0x")
-
-	privKey := &crypto.Ed25519PrivateKey{}
-
-	err := privKey.FromHex(privateKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create private key from hex: %w", err)
-	}
-
-	return privKey, nil
 }
