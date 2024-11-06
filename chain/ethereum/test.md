@@ -23,7 +23,7 @@ grpcurl -plaintext -d '{
 ```
 grpcurl -plaintext -d '{
   "chain": "Ethereum",
-  "network": "mainet",
+  "network": "mainnet",
   "publicKey": "02e993166ac8fb56c438a2a0e1266f33b54dfe7b79f738d9945dbbbebf6e367c55"
 }' 127.0.0.1:8189 dapplink.account.WalletAccountService.convertAddress
 ```
