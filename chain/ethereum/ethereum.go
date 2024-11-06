@@ -37,7 +37,7 @@ type ChainAdaptor struct {
 }
 
 func NewChainAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
-	ethClient, err := DialEthClient(context.Background(), conf.WalletNode.Eth.RpcUrl)
+	ethClient, err := DialEthClient(context.Background(), conf.WalletNode.Eth.RPCs[0].RPCURL)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,6 @@ func (c *ChainAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*acc
 func (c *ChainAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account.ConvertAddressResponse, error) {
 	publicKeyBytes, err := hex.DecodeString(req.PublicKey)
 	if err != nil {
-		log.Error("decode public key failed:", err)
 		return &account.ConvertAddressResponse{
 			Code:    common2.ReturnCode_ERROR,
 			Msg:     "convert address fail",

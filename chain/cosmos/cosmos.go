@@ -25,7 +25,7 @@ type ChainAdaptor struct {
 }
 
 func NewChainAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
-	cosmosClient, err := DialCosmosClient(context.Background(), conf.WalletNode.Cosmos.RpcUrl)
+	cosmosClient, err := DialCosmosClient(context.Background(), conf.WalletNode.Cosmos.RPCs[0].RPCURL)
 	if err != nil {
 		log.Error("new chain adaptor error (%w)", err)
 		return nil, err
@@ -83,13 +83,13 @@ func (c *ChainAdaptor) ValidAddress(req *account.ValidAddressRequest) (*account.
 
 func (c *ChainAdaptor) GetBlockByNumber(req *account.BlockNumberRequest) (*account.BlockResponse, error) {
 
-	block, err := c.client.GetBlock(c.conf.WalletNode.Cosmos.DataApiUrl, req.Height)
+	block, err := c.client.GetBlock(c.conf.WalletNode.Cosmos.RestUrl, req.Height)
 	if err != nil {
 		log.Error("get block by number error (%w)", err)
 		return nil, err
 	}
 
-	transactions, err := c.client.DecodeBlockTx(c.conf.WalletNode.Cosmos.DataApiUrl, block)
+	transactions, err := c.client.DecodeBlockTx(c.conf.WalletNode.Cosmos.RestUrl, block)
 	if err != nil {
 		log.Error("decode block tx error (%w)", err)
 		return nil, err
@@ -116,7 +116,7 @@ func (c *ChainAdaptor) GetBlockByHash(req *account.BlockHashRequest) (*account.B
 		return nil, err
 	}
 
-	blockResponse, err := c.client.GetBlock(c.conf.WalletNode.Cosmos.DataApiUrl, block.Block.Header.Height)
+	blockResponse, err := c.client.GetBlock(c.conf.WalletNode.Cosmos.RestUrl, block.Block.Header.Height)
 	log.Info("block tx : %s", blockResponse.Block.Data.Txs[0])
 	// BaseFee
 	return &account.BlockResponse{
@@ -218,7 +218,7 @@ func (c *ChainAdaptor) GetTxByAddress(req *account.TxAddressRequest) (*account.T
 }
 
 func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashResponse, error) {
-	txResponse, err := c.client.GetTxByHash(c.conf.WalletNode.Cosmos.DataApiUrl, req.Hash)
+	txResponse, err := c.client.GetTxByHash(c.conf.WalletNode.Cosmos.RestUrl, req.Hash)
 	if err != nil {
 		return &account.TxHashResponse{
 			Code: common2.ReturnCode_ERROR,
