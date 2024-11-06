@@ -3,7 +3,7 @@ server:
 
 network: mainnet
 
-chains: [Ethereum,Tron]
+chains: [Ethereum,Tron,Sui]
 
 wallet_node:
   eth:
@@ -24,3 +24,7 @@ wallet_node:
     data_api_key: '5181d535-b68f-41cf-bbc6-25905e46b6a6'
     data_api_token: ''
     time_out: 100
+  sui:
+    rpcs:
+      - rpc_url: 'https://sui-mainnet-endpoint.blockvision.org'
+

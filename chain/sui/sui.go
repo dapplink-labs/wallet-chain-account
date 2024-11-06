@@ -17,25 +17,26 @@ import (
 
 const ChainName = "Sui"
 const SuiCoinType = "0x2::sui::SUI"
-const PUBLIC_KEY_SIZE = 32    // 假设公钥大小为32字节
-const SUI_ADDRESS_LENGTH = 32 // 假设 Sui 地址长度为 20 字节
+const PUBLIC_KEY_SIZE = 32
+const SUI_ADDRESS_LENGTH = 32
+
 var SIGNATURE_SCHEME_TO_FLAG = map[string]byte{
-	"ED25519": 0x00, // 这只是一个示例，实际值应根据实际情况定义
+	"ED25519": 0x00,
 }
 
 type SuiAdaptor struct {
 	suiClient *SuiClient
 }
 
-func NewSuiAdaptor(conf *config.Config) chain.IChainAdaptor {
+func NewSuiAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
 	client, err := NewSuiClient(conf)
 	if err != nil {
 		log.Error("Init Sui Client err", "err", err)
-		return nil
+		return nil, err
 	}
 	return SuiAdaptor{
 		suiClient: client,
-	}
+	}, nil
 }
 
 func (s SuiAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*account.SupportChainsResponse, error) {
@@ -89,14 +90,13 @@ func (s SuiAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account
 		address = address[2:]
 	}
 
-	// 用 0 填充地址，直到达到 SUI_ADDRESS_LENGTH 的长度
 	for len(address) < SUI_ADDRESS_LENGTH*2 {
 		address = "0" + address
 	}
 
 	return &account.ConvertAddressResponse{
 		Code:    common2.ReturnCode_SUCCESS,
-		Msg:     "生成Address成功",
+		Msg:     "convert address successs",
 		Address: address,
 	}, nil
 }
@@ -113,12 +113,12 @@ func (s SuiAdaptor) ValidAddress(req *account.ValidAddressRequest) (*account.Val
 	if ok {
 		return &account.ValidAddressResponse{
 			Code:  common2.ReturnCode_SUCCESS,
-			Msg:   "valid address",
+			Msg:   "valid address success",
 			Valid: true,
 		}, nil
 	} else {
 		return &account.ValidAddressResponse{
-			Code:  common2.ReturnCode_SUCCESS,
+			Code:  common2.ReturnCode_ERROR,
 			Msg:   "invalid address",
 			Valid: false,
 		}, nil
@@ -148,7 +148,7 @@ func (s SuiAdaptor) GetBlockHeaderByNumber(req *account.BlockHeaderNumberRequest
 }
 
 func (s SuiAdaptor) GetAccount(req *account.AccountRequest) (*account.AccountResponse, error) {
-	balanceRes, err := s.suiClient.GetAccountBalance(SuiCoinType, req.Address)
+	balanceRes, err := s.suiClient.GetAccountBalance(req.Address, SuiCoinType)
 	if err != nil {
 		log.Error("get balance err", "err", err)
 		return &account.AccountResponse{
@@ -156,14 +156,6 @@ func (s SuiAdaptor) GetAccount(req *account.AccountRequest) (*account.AccountRes
 			Msg:  "Get balance err",
 		}, err
 	}
-	//nonceResult, err := c.ethClient.TxCountByAddress(common.HexToAddress(req.Address))
-	//if err != nil {
-	//	log.Error("get nonce by address fail", "err", err)
-	//	return &account.AccountResponse{
-	//		Code: common2.ReturnCode_ERROR,
-	//		Msg:  "get nonce by address fail",
-	//	}, nil
-	//}
 
 	log.Info("balance result", "balance=", balanceRes.TotalBalance)
 	return &account.AccountResponse{
