@@ -42,7 +42,7 @@ func TestChainAdaptor_ConvertAddress(t *testing.T) {
 		PublicKey: "02410c64fcd262512683b54576440e3d3033d825ef9f753b44c51ccdd70a7e90c3",
 	})
 	if err != nil {
-		log.Error("convert address failed:", err)
+		t.Error("convert address failed:", err)
 		return
 	}
 
@@ -62,7 +62,7 @@ func TestChainAdaptor_ValidAddress(t *testing.T) {
 		Address: "0x8358d847Fc823097380c4996A3D3485D9D86941f",
 	})
 	if err != nil {
-		log.Error("valid address failed:", err)
+		t.Error("valid address failed:", err)
 		return
 	}
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
@@ -80,7 +80,7 @@ func TestChainAdaptor_GetBlockHeaderByNumber(t *testing.T) {
 		Height:  21118661,
 	})
 	if err != nil {
-		log.Error("get block header by number failed:", err)
+		t.Error("get block header by number failed:", err)
 		return
 	}
 
@@ -100,7 +100,7 @@ func TestChainAdaptor_GetBlockHeaderByHash(t *testing.T) {
 		Hash:    "0x17933cce37211452df901718afd30e4fe013b67c0d262dffd2eb5a3f1b091431",
 	})
 	if err != nil {
-		log.Error("get block header by hash failed:", err)
+		t.Error("get block header by hash failed:", err)
 		return
 	}
 
@@ -120,7 +120,7 @@ func TestChainAdaptor_GetBlockByNumber(t *testing.T) {
 		ViewTx: true,
 	})
 	if err != nil {
-		log.Error("get block by number failed:", err)
+		t.Error("get block by number failed:", err)
 		return
 	}
 
@@ -140,7 +140,7 @@ func TestChainAdaptor_GetBlockByHash(t *testing.T) {
 		ViewTx: true,
 	})
 	if err != nil {
-		log.Error("get block by hash failed:", err)
+		t.Error("get block by hash failed:", err)
 		return
 	}
 
@@ -160,8 +160,10 @@ func TestChainAdaptor_GetAccount(t *testing.T) {
 		Address: "0x8358d847Fc823097380c4996A3D3485D9D86941f",
 	})
 	if err != nil {
+		t.Error("get account failed:", err)
 		return
 	}
+
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
 	fmt.Println(resp)
 }
@@ -177,8 +179,71 @@ func TestChainAdaptor_GetFee(t *testing.T) {
 		Network: "mainnet",
 	})
 	if err != nil {
+		t.Error("get account failed:", err)
 		return
 	}
+
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
 	fmt.Println(resp)
+}
+
+func TestChainAdaptor_GetTxByAddress(t *testing.T) {
+	adaptor, err := setup()
+	if err != nil {
+		return
+	}
+
+	resp, err := adaptor.GetTxByAddress(&account.TxAddressRequest{
+		Chain:   ChainName,
+		Network: "mainnet",
+		Address: "0x0B70B578aBd96AAb5e80D24D1f3C28DbdE14356a",
+	})
+	if err != nil {
+		t.Error("get transaction by address failed:", err)
+		return
+	}
+
+	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
+	fmt.Println(resp.Tx)
+}
+
+func TestChainAdaptor_GetTxByHash(t *testing.T) {
+	adaptor, err := setup()
+	if err != nil {
+		return
+	}
+
+	resp, err := adaptor.GetTxByHash(&account.TxHashRequest{
+		Chain:   ChainName,
+		Network: "mainnet",
+		Hash:    "0xa35cdf2fc94521b344ea02591eda0b767be2fc8620bb4ed8adabba49fcc0c89a",
+	})
+	if err != nil {
+		t.Error("get transaction by address failed:", err)
+		return
+	}
+
+	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
+	fmt.Println(resp.Tx)
+}
+
+func TestChainAdaptor_GetBlockByRange(t *testing.T) {
+	adaptor, err := setup()
+	if err != nil {
+		return
+	}
+
+	resp, err := adaptor.GetBlockByRange(&account.BlockByRangeRequest{
+		Chain:   ChainName,
+		Network: "mainnet",
+		Start:   "21118661",
+		End:     "21118662",
+	})
+	if err != nil {
+		t.Error("get block by range failed:", err)
+		return
+	}
+
+	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
+	fmt.Println(resp.GetBlockHeader())
 }
