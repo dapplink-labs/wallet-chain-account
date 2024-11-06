@@ -1,43 +1,65 @@
 package ton
 
 import (
-	"context"
+	"strconv"
+
+	"crypto/ed25519"
+
 	"github.com/ethereum/go-ethereum/log"
+
 	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/ton/wallet"
 
 	"github.com/dapplink-labs/wallet-chain-account/chain"
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
-	common2 "github.com/dapplink-labs/wallet-chain-account/rpc/common"
+	"github.com/dapplink-labs/wallet-chain-account/rpc/common"
 )
 
 type ChainAdaptor struct {
-	tonClient *TonClient
+	tonClient     *TonClient
+	tonDataClient *TonDataClient
 }
 
-// GetSupportChains 返回是否支持链
+func NewChainAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
+	tonClient, err := NewTonClients(conf)
+	if err != nil {
+		log.Error("new ton client fail", "err", err)
+		return nil, err
+	}
+
+	tonDataClient, err := NewTonDataClient(conf.WalletNode.Ton.DataApiUrl)
+	if err != nil {
+		log.Error("new ton data client fail", "err", err)
+		return nil, err
+	}
+
+	return &ChainAdaptor{
+		tonClient:     tonClient,
+		tonDataClient: tonDataClient,
+	}, nil
+}
+
 func (c *ChainAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*account.SupportChainsResponse, error) {
 	return &account.SupportChainsResponse{
-		Code:    common2.ReturnCode_SUCCESS,
+		Code:    common.ReturnCode_SUCCESS,
 		Msg:     "Support this chain",
 		Support: true,
 	}, nil
 }
 
-// ConvertAddress 将公钥转换为地址
 func (c *ChainAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account.ConvertAddressResponse, error) {
-	address, err := wallet.AddressFromPubKey(req.PublicKey, wallet.V4R2, 0)
+	addr, err := wallet.AddressFromPubKey(ed25519.PublicKey(req.PublicKey), req.Type, 0)
 	if err != nil {
 		return &account.ConvertAddressResponse{
-			Code: common2.ReturnCode_ERROR,
+			Code: common.ReturnCode_ERROR,
 			Msg:  err.Error(),
 		}, nil
 	} else {
 		return &account.ConvertAddressResponse{
-			Code:    common2.ReturnCode_SUCCESS,
+			Code:    common.ReturnCode_SUCCESS,
 			Msg:     "convert address successs",
-			Address: address.String(),
+			Address: addr.String(),
 		}, nil
 	}
 }
@@ -46,112 +68,181 @@ func (c *ChainAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*acco
 func (c *ChainAdaptor) ValidAddress(req *account.ValidAddressRequest) (*account.ValidAddressResponse, error) {
 	_, err := address.ParseAddr(req.Address)
 	return &account.ValidAddressResponse{
-		Code:  common2.ReturnCode_SUCCESS,
+		Code:  common.ReturnCode_SUCCESS,
 		Msg:   "convert address successs",
 		Valid: err == nil,
 	}, nil
 }
 
-// GetBlockByNumber 根据区块高度获取区块
 func (c *ChainAdaptor) GetBlockByNumber(req *account.BlockNumberRequest) (*account.BlockResponse, error) {
-	block, err := c.tonClient.GetBlockByNumber(uint32(req.Height))
-	if err != nil {
-		log.Error("block by number error", err)
-		return &account.BlockResponse{
-			Code: common2.ReturnCode_ERROR,
-			Msg:  err.Error(),
-		}, nil
-	} else {
-		// 提取交易列表
-		return &account.BlockResponse{
-			Code: common2.ReturnCode_SUCCESS,
-			Msg:  "get block success",
-			//Hash:         block.BlockInfo.,
-			//BaseFee:      block.BlockInfo.,
-			//Transactions: block.BlockInfo.,
-		}, err
-	}
-	//c.tonClient.rw.Lock()
-	//defer c.tonClient.rw.Unlock()
-	//return c.tonClient.GetBlockByNumber(req.Number)
+	return nil, nil
 }
 
 func (c *ChainAdaptor) GetBlockByHash(req *account.BlockHashRequest) (*account.BlockResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, nil
 }
 
 func (c *ChainAdaptor) GetBlockHeaderByHash(req *account.BlockHeaderHashRequest) (*account.BlockHeaderResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, nil
 }
 
 func (c *ChainAdaptor) GetBlockHeaderByNumber(req *account.BlockHeaderNumberRequest) (*account.BlockHeaderResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, nil
 }
 
 func (c *ChainAdaptor) GetAccount(req *account.AccountRequest) (*account.AccountResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	balance, nonce, err := c.tonClient.GetAccountInfo(req.Address)
+	if err != nil {
+		return &account.AccountResponse{
+			Code: common.ReturnCode_ERROR,
+			Msg:  "get account info error",
+		}, err
+	}
+
+	sequence := strconv.FormatUint(nonce, 10)
+	return &account.AccountResponse{
+		Code:     common.ReturnCode_SUCCESS,
+		Msg:      "get account info success",
+		Balance:  balance,
+		Sequence: sequence,
+	}, nil
+
 }
 
 func (c *ChainAdaptor) GetFee(req *account.FeeRequest) (*account.FeeResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	ret, err := c.tonDataClient.GetEstimateFee(req.RawTx, req.Address)
+	if err != nil {
+		return &account.FeeResponse{
+			Code: common.ReturnCode_SUCCESS,
+			Msg:  "get fee fail",
+		}, err
+	}
+
+	var normalFee int64
+	ParseAndAdd := func(s string) error {
+		value, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return err
+		}
+		normalFee += value
+		return nil
+	}
+
+	if err1 := ParseAndAdd(ret.InFwdFee); err1 != nil {
+		return &account.FeeResponse{
+			Code: common.ReturnCode_SUCCESS,
+			Msg:  "get fee fail in fwd fee",
+		}, err1
+	}
+	if err1 := ParseAndAdd(ret.StorageFee); err1 != nil {
+		return &account.FeeResponse{
+			Code: common.ReturnCode_SUCCESS,
+			Msg:  "get fee fail in storage fee",
+		}, err1
+	}
+	if err2 := ParseAndAdd(ret.GasFee); err2 != nil {
+		return &account.FeeResponse{
+			Code: common.ReturnCode_SUCCESS,
+			Msg:  "get fee fail in gas fee",
+		}, err2
+	}
+	if err3 := ParseAndAdd(ret.FwdFee); err3 != nil {
+		return &account.FeeResponse{
+			Code: common.ReturnCode_SUCCESS,
+			Msg:  "get fee fail in fwd fee",
+		}, err3
+	}
+
+	return &account.FeeResponse{
+		Code:      common.ReturnCode_SUCCESS,
+		Msg:       "get fee success",
+		NormalFee: strconv.FormatInt(normalFee, 10),
+	}, nil
 }
 
 func (c *ChainAdaptor) SendTx(req *account.SendTxRequest) (*account.SendTxResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	hash, err := c.tonDataClient.PostSendTx(req.RawTx)
+	if err != nil {
+		log.Error("send transaction fail", "err", err)
+		return nil, err
+	}
+	return &account.SendTxResponse{
+		Code:   common.ReturnCode_SUCCESS,
+		Msg:    "success",
+		TxHash: hash,
+	}, nil
 }
 
 func (c *ChainAdaptor) GetTxByAddress(req *account.TxAddressRequest) (*account.TxAddressResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (c *ChainAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*account.BlockByRangeResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (c *ChainAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequest) (*account.SignedTransactionResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (c *ChainAdaptor) DecodeTransaction(req *account.DecodeTransactionRequest) (*account.DecodeTransactionResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (c *ChainAdaptor) VerifySignedTransaction(req *account.VerifyTransactionRequest) (*account.VerifyTransactionResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (c *ChainAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.ExtraDataResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func NewChainAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
-	tonClient, err := DialTonClient(context.Background(), conf.WalletNode.Eth.RPCs[0].RPCURL)
+	ret, err := c.tonDataClient.GetTxByAddr(req.Address)
 	if err != nil {
 		return nil, err
 	}
-	return &ChainAdaptor{
-		tonClient: tonClient,
+	var txList []*account.TxMessage
+	for _, transactionInfo := range ret.Transactions {
+		txMessage, blockRespErr := ParseTxMessage(ret, &transactionInfo)
+		if blockRespErr != nil {
+			return &account.TxAddressResponse{
+				Code: common.ReturnCode_ERROR,
+				Msg:  "get transactions fail",
+			}, blockRespErr
+		}
+		txList = append(txList, txMessage)
+	}
+	return &account.TxAddressResponse{
+		Code: common.ReturnCode_SUCCESS,
+		Msg:  "get transactions fail",
+		Tx:   txList,
+	}, nil
+}
+
+func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashResponse, error) {
+	ret, err := c.tonDataClient.GetTxByTxHash(req.Hash)
+	if err != nil {
+		log.Error("get transaction by hash fail", "err", err)
+		return nil, err
+	}
+	if len(ret.Transactions) == 0 {
+		return &account.TxHashResponse{
+			Code: common.ReturnCode_ERROR,
+			Msg:  "get transactions fail",
+		}, nil
+	}
+
+	tx := ret.Transactions[0]
+	txMsg, _ := ParseTxMessage(ret, &tx)
+	res := &account.TxHashResponse{
+		Code: common.ReturnCode_SUCCESS,
+		Msg:  "get transaction by hash success",
+		Tx:   txMsg,
+	}
+	return res, nil
+}
+
+func (c *ChainAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*account.BlockByRangeResponse, error) {
+	return nil, nil
+}
+
+func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
+	return nil, nil
+}
+
+func (c *ChainAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequest) (*account.SignedTransactionResponse, error) {
+	return nil, nil
+}
+
+func (c *ChainAdaptor) DecodeTransaction(req *account.DecodeTransactionRequest) (*account.DecodeTransactionResponse, error) {
+	return nil, nil
+}
+
+func (c *ChainAdaptor) VerifySignedTransaction(req *account.VerifyTransactionRequest) (*account.VerifyTransactionResponse, error) {
+	return nil, nil
+}
+
+func (c *ChainAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.ExtraDataResponse, error) {
+	return &account.ExtraDataResponse{
+		Code:  common.ReturnCode_ERROR,
+		Msg:   "Do not support this api",
+		Value: req.Chain,
 	}, nil
 }

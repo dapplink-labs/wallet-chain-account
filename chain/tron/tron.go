@@ -29,8 +29,8 @@ type ChainAdaptor struct {
 }
 
 func NewChainAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
-	rpc := conf.WalletNode.Tron.RPCs[0]
-	tronClient := DialTronClient(rpc.RPCURL, rpc.RPCUser, rpc.RPCPass)
+	rpc := conf.WalletNode.Tron
+	tronClient := DialTronClient(rpc.RpcUrl, rpc.RpcUser, rpc.RpcPass)
 	tronDataClient, err := NewTronDataClient(conf.WalletNode.Tron.DataApiUrl, conf.WalletNode.Tron.DataApiKey, time.Second*15)
 	if err != nil {
 		return nil, err

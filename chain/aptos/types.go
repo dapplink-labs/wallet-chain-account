@@ -17,7 +17,7 @@ type TransferRequest struct {
 	ToAddress   string
 	Amount      uint64
 	// TODO Need to support more currencies
-	//CoinType    string
+	// CoinType    string
 }
 
 type TransactionResponse struct {
@@ -117,11 +117,12 @@ type FeeStatement struct {
 }
 
 type BlockResponse struct {
-	BlockHeight    uint64 `json:"block_height,string"`
-	BlockHash      string `json:"block_hash"`
-	BlockTimestamp uint64 `json:"block_timestamp,string"`
-	FirstVersion   uint64 `json:"first_version,string"`
-	LastVersion    uint64 `json:"last_version,string"`
+	BlockHeight    uint64                `json:"block_height,string"`
+	BlockHash      string                `json:"block_hash"`
+	BlockTimestamp uint64                `json:"block_timestamp,string"`
+	FirstVersion   uint64                `json:"first_version,string"`
+	LastVersion    uint64                `json:"last_version,string"`
+	Transactions   []TransactionResponse `json:"transactions"`
 }
 
 type NodeInfo struct {
@@ -135,4 +136,63 @@ type NodeInfo struct {
 	OldestBlockHeight   uint64 `json:"oldest_block_height,string"`
 	BlockHeight         uint64 `json:"block_height,string"`
 	GitHash             string `json:"git_hash"`
+}
+
+type AccountBalanceResponse struct {
+	Type string `json:"type"`
+	Data struct {
+		Coin struct {
+			Value string `json:"value"`
+		} `json:"coin"`
+	} `json:"data"`
+}
+
+type SubmitTransactionRequest struct {
+	ChainId                 uint8                `json:"chain_id"`
+	Sender                  string               `json:"sender"`
+	SequenceNumber          uint64               `json:"sequence_number"`
+	MaxGasAmount            uint64               `json:"max_gas_amount"`
+	GasUnitPrice            uint64               `json:"gas_unit_price"`
+	ExpirationTimestampSecs uint64               `json:"expiration_timestamp_secs"`
+	Payload                 TransactionPayload   `json:"payload"`
+	Signature               TransactionSignature `json:"signature"`
+}
+
+type PayloadType string
+
+const (
+	EntryFunctionPayload PayloadType = "entry_function_payload"
+	ScriptPayload        PayloadType = "script_payload"
+	ModuleBundlePayload  PayloadType = "module_bundle_payload"
+)
+
+type TransactionPayload struct {
+	Type          PayloadType   `json:"type"`
+	Function      string        `json:"function"`
+	TypeArguments []string      `json:"type_arguments"`
+	Arguments     []interface{} `json:"arguments"`
+}
+type SignatureType string
+
+const (
+	Ed25519Signature SignatureType = "ed25519_signature"
+	MultiSignature   SignatureType = "multi_signature"
+	MultiEd25519     SignatureType = "multi_ed25519"
+)
+
+type TransactionSignature struct {
+	Type      SignatureType `json:"type"`
+	PublicKey string        `json:"public_key"`
+	Signature string        `json:"signature"`
+}
+
+type SubmitTransactionResponse struct {
+	Hash                    string               `json:"hash"`
+	Sender                  string               `json:"sender"`
+	SequenceNumber          string               `json:"sequence_number"`
+	MaxGasAmount            string               `json:"max_gas_amount"`
+	GasUnitPrice            string               `json:"gas_unit_price"`
+	ExpirationTimestampSecs string               `json:"expiration_timestamp_secs"`
+	Payload                 TransactionPayload   `json:"payload"`
+	Signature               TransactionSignature `json:"signature"`
 }
