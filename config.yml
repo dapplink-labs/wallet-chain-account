@@ -38,3 +38,6 @@ wallet_node:
     data_api_token: ''
     time_out: 100
 
+  sui:
+    rpcs:
+      - rpc_url: 'https://sui-mainnet-endpoint.blockvision.org'
