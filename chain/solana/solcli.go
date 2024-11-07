@@ -3,18 +3,16 @@ package solana
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
+	"github.com/blocto/solana-go-sdk/client"
+	"github.com/blocto/solana-go-sdk/rpc"
+	"github.com/blocto/solana-go-sdk/types"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/mr-tron/base58"
 	"log"
 	"math/big"
 	"strconv"
 	"time"
-
-	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/mr-tron/base58"
-
-	"github.com/blocto/solana-go-sdk/client"
-	"github.com/blocto/solana-go-sdk/rpc"
-	"github.com/blocto/solana-go-sdk/types"
 
 	"github.com/dapplink-labs/wallet-chain-account/config"
 )
@@ -25,7 +23,46 @@ const (
 	defaultRequestTimeout = 10 * time.Second
 )
 
-type SolanaCli interface {
+type JsonRpcError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    any    `json:"data"`
+}
+type JsonRpcResponse[T any] struct {
+	JsonRpc string        `json:"jsonrpc"`
+	Id      uint64        `json:"id"`
+	Result  T             `json:"result"`
+	Error   *JsonRpcError `json:"error,omitempty"`
+}
+
+type Block struct {
+	Blockhash         string
+	BlockTime         *time.Time
+	BlockHeight       *int64
+	PreviousBlockhash string
+	ParentSlot        uint64
+	Transactions      []BlockTransaction
+	Signatures        []string
+}
+type BlockTransaction struct {
+	// rpc fields
+	Meta        *TransactionMeta
+	Transaction types.Transaction
+}
+type TransactionMeta struct {
+	Err               any
+	Fee               uint64
+	PreBalances       []int64
+	PostBalances      []int64
+	PreTokenBalances  []rpc.TransactionMetaTokenBalance
+	PostTokenBalances []rpc.TransactionMetaTokenBalance
+	LogMessages       []string
+
+	LoadedAddresses      rpc.TransactionLoadedAddresses
+	ComputeUnitsConsumed *uint64
+}
+
+type SolClient interface {
 	NewSolanaClients(conf *config.Config) (*SolanaClient, error)
 	GetLatestBlockHeight() (int64, error)
 	GetBalance(address string) (string, error)
@@ -33,8 +70,9 @@ type SolanaCli interface {
 	getPreTokenBalance(preTokenBalance []rpc.TransactionMetaTokenBalance, accountIndex uint64) *rpc.TransactionMetaTokenBalance
 	RequestAirdrop(address string) (string, error)
 	SendTx(rawTx string) (string, error)
-	GetNonce(nonceAccountAddr string) (string, error)
+	GetNonce(NonceAccount string) (string, error)
 	GetMinRent() (string, error)
+	GetFee(nonceAccountAddr string) (string, error)
 	Close()
 }
 type SolanaClient struct {
@@ -77,18 +115,18 @@ func (sol *SolanaClient) GetLatestBlockHeight() (int64, error) {
 }
 
 func (sol *SolanaClient) GetBalance(address string) (string, error) {
-	balance, err := sol.RpcClient.GetBalanceWithConfig(
+	balance, err := sol.Client.GetBalanceWithConfig(
 		context.TODO(),
 		address,
-		rpc.GetBalanceConfig{
+		client.GetBalanceConfig(rpc.GetBalanceConfig{
 			Commitment: rpc.CommitmentProcessed,
-		},
+		}),
 	)
 	if err != nil {
 		return "", err
 	}
 
-	var lamportsOnAccount = new(big.Float).SetUint64(balance.Result.Value)
+	var lamportsOnAccount = new(big.Float).SetUint64(balance)
 
 	var solBalance = new(big.Float).Quo(lamportsOnAccount, new(big.Float).SetUint64(1000000000))
 
@@ -157,16 +195,31 @@ func (sol *SolanaClient) GetTxByHash(hash string) (*TxMessage, error) {
 		context.Background(),
 		hash,
 	)
+	fmt.Printf("%#v\n", out)
 	if err != nil {
 		log.Fatalf("failed to request airdrop, err: %v", err)
 		return nil, err
 	}
-	message := out.Result.Transaction.(map[string]interface{})["message"]
+	if out.Result == nil {
+		return nil, fmt.Errorf("out or out.Result is nil")
+	}
+
+	transaction, ok := out.Result.Transaction.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Transaction is not of type map[string]interface{}")
+	}
+
+	message, exists := transaction["message"]
+	if !exists {
+		return nil, fmt.Errorf("key 'message' does not exist in transaction")
+	}
 	accountKeys := message.((map[string]interface{}))["accountKeys"].([]interface{})
 	signatures := out.Result.Transaction.(map[string]interface{})["signatures"].([]interface{})
+	log.Println("out:", out.Result)
 	_hash := signatures[0]
 	if out.Result.Meta.Err != nil || len(out.Result.Meta.LogMessages) == 0 || _hash == "" {
-		log.Fatalf("not found tx, err: %v", err)
+		//log.Fatalf("not found tx, err: %v", err)
+
 		return nil, err
 	}
 	var txMessage []*TxMessage
@@ -215,7 +268,7 @@ func (sol *SolanaClient) GetTxByHash(hash string) (*TxMessage, error) {
 		return txMessage[0], nil
 	}
 	log.Fatalf("not found tx, err: %v", err)
-	return nil, err
+	return nil, fmt.Errorf("txMessage  is not >0")
 }
 
 func getPreTokenBalance(preTokenBalance []rpc.TransactionMetaTokenBalance, accountIndex uint64) *rpc.TransactionMetaTokenBalance {
@@ -258,8 +311,11 @@ func (sol *SolanaClient) SendTx(rawTx string) (string, error) {
 	return res.Result, nil
 }
 
-func (sol *SolanaClient) GetNonce(nonceAccountAddr string) (string, error) {
-	nonce, err := sol.Client.GetNonceFromNonceAccount(context.Background(), nonceAccountAddr)
+func (sol *SolanaClient) GetNonce(NonceAccount string) (string, error) {
+	//NonceAccount, err := sol.Client.GetNonceAccount(context.Background(), AccountAddr)
+
+	nonce, err := sol.Client.GetNonceFromNonceAccount(context.Background(), NonceAccount)
+	println("nonce:", nonce)
 	if err != nil {
 		log.Fatalf("failed to get nonce account, err: %v", err)
 		return "", err
@@ -267,6 +323,10 @@ func (sol *SolanaClient) GetNonce(nonceAccountAddr string) (string, error) {
 	return nonce, nil
 }
 
+func (sol *SolanaClient) Getfee(AccountAddr string, NonceAccount string) (string, error) {
+
+	panic("implement me")
+}
 func (sol *SolanaClient) GetMinRent() (string, error) {
 	bal, err := sol.RpcClient.GetMinimumBalanceForRentExemption(context.Background(), 100)
 	if err != nil {
@@ -276,74 +336,7 @@ func (sol *SolanaClient) GetMinRent() (string, error) {
 	return strconv.FormatUint(bal.Result, 10), nil
 }
 
-type JsonRpcError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Data    any    `json:"data"`
-}
-type JsonRpcResponse[T any] struct {
-	JsonRpc string        `json:"jsonrpc"`
-	Id      uint64        `json:"id"`
-	Result  T             `json:"result"`
-	Error   *JsonRpcError `json:"error,omitempty"`
-}
-
-type Block struct {
-	Blockhash         string
-	BlockTime         *time.Time
-	BlockHeight       *int64
-	PreviousBlockhash string
-	ParentSlot        uint64
-	Transactions      []BlockTransaction
-	Signatures        []string
-}
-type BlockTransaction struct {
-	// rpc fields
-	Meta        *TransactionMeta
-	Transaction types.Transaction
-}
-type TransactionMeta struct {
-	Err               any
-	Fee               uint64
-	PreBalances       []int64
-	PostBalances      []int64
-	PreTokenBalances  []rpc.TransactionMetaTokenBalance
-	PostTokenBalances []rpc.TransactionMetaTokenBalance
-	LogMessages       []string
-
-	LoadedAddresses      rpc.TransactionLoadedAddresses
-	ComputeUnitsConsumed *uint64
-}
-
 func (sol *SolanaClient) BlockByNumber(hash string) (*JsonRpcResponse[*Block], error) {
-	//ctxwt, cancel := context.WithTimeout(context.Background(), defaultRequestTimeout)
-	//defer cancel()
-	//
-	//slot, err := strconv.ParseUint(hash, 10, 64)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//var block *JsonRpcResponse[*Block]
-	//clientBlock, err := sol.Client.GetBlock(ctxwt, slot)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//// Convert or adapt clientBlock to *JsonRpcResponse[*Block]
-	//block = &JsonRpcResponse[*Block]{
-	//	JsonRpc: "2.0", // Assuming JSON-RPC version 2.0
-	//	Id:      1,     // You might want to set this dynamically
-	//	Result: &Block{
-	//		Blockhash:         clientBlock.Blockhash,
-	//		BlockTime:         clientBlock.BlockTime,
-	//		BlockHeight:       clientBlock.BlockHeight,
-	//		PreviousBlockhash: clientBlock.PreviousBlockhash,
-	//		ParentSlot:        clientBlock.ParentSlot,
-	//		//Transactions:      clientBlock.Transactions,
-	//		Signatures: clientBlock.Signatures,
-	//	},
-	//}
-	//
-	//return block, nil
+
 	return nil, nil
 }
