@@ -1,6 +1,7 @@
 package solana
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -17,7 +18,7 @@ var (
 )
 
 type SolData struct {
-	SolScanCli *solscan.ChainExplorerAdaptor
+	SolDataCli *solscan.ChainExplorerAdaptor
 }
 
 func NewSolScanClient(baseUrl, apiKey string, timeout time.Duration) (*SolData, error) {
@@ -26,7 +27,7 @@ func NewSolScanClient(baseUrl, apiKey string, timeout time.Duration) (*SolData, 
 		log.Error("New solscan client fail", "err", err)
 		return nil, err
 	}
-	return &SolData{SolScanCli: solCli}, err
+	return &SolData{SolDataCli: solCli}, err
 }
 
 func (ss *SolData) GetTxByAddress(page, pagesize uint64, address string, action account.ActionType) (*account.TransactionResponse[account.AccountTxResponse], error) {
@@ -38,7 +39,9 @@ func (ss *SolData) GetTxByAddress(page, pagesize uint64, address string, action 
 		Action:  action,
 		Address: address,
 	}
-	txData, err := ss.SolScanCli.GetTxByAddress(request)
+	fmt.Printf("%#v\n", request)
+	txData, err := ss.SolDataCli.GetTxByAddress(request)
+	fmt.Printf("%#v\n", txData)
 	if err != nil {
 		return nil, err
 	}

@@ -198,8 +198,8 @@ github.com/cucumber/messages/go/v21 v21.0.1 h1:wzA0LxwjlWQYZd32VTlAVDTkW6inOFmSM
 github.com/cucumber/messages/go/v21 v21.0.1/go.mod h1:zheH/2HS9JLVFukdrsPWoPdmUtmYQAQPLk7w5vWsk5s=
 github.com/danieljoos/wincred v1.1.2 h1:QLdCxFs1/Yl4zduvBdcHB8goaYk9RARS2SgLLRuAyr0=
 github.com/danieljoos/wincred v1.1.2/go.mod h1:GijpziifJoIBfYh+S7BbkdUTU4LfM+QnGqR5Vl2tAx0=
-github.com/dapplink-labs/chain-explorer-api v0.0.1-beta h1:8O9lKuWWup5wK13wXk7+JRh9FPTJM7WIC3yUgOEcRpA=
-github.com/dapplink-labs/chain-explorer-api v0.0.1-beta/go.mod h1:NN+abomqO9hKDmuegTSUKz2YpLd2KaGA2YsjHzfbwi4=
+github.com/dapplink-labs/chain-explorer-api v0.0.3-0.20241104144036-620933cbffa1 h1:3ZY/DSbqEYF2qfcH86lb4xBi2nr8uZJh/mp89QUQLZ4=
+github.com/dapplink-labs/chain-explorer-api v0.0.3-0.20241104144036-620933cbffa1/go.mod h1:NN+abomqO9hKDmuegTSUKz2YpLd2KaGA2YsjHzfbwi4=
 github.com/davecgh/go-spew v0.0.0-20171005155431-ecdeabc65495/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

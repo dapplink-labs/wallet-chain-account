@@ -11,7 +11,7 @@ require (
 	github.com/blocto/solana-go-sdk v1.30.0
 	github.com/btcsuite/btcd/btcec/v2 v2.3.4
 	github.com/cosmos/cosmos-sdk v0.50.8
-	github.com/dapplink-labs/chain-explorer-api v0.0.1-beta
+	github.com/dapplink-labs/chain-explorer-api v0.0.3-0.20241104144036-620933cbffa1
 	github.com/ethereum/go-ethereum v1.14.11
 	github.com/fbsobreira/gotron-sdk v0.0.0-20230907131216-1e824406fe8c
 	github.com/gagliardetto/solana-go v1.11.0
