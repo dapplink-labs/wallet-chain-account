@@ -1,6 +1,7 @@
 package solana
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -10,14 +11,8 @@ import (
 	"github.com/dapplink-labs/chain-explorer-api/explorer/solscan"
 )
 
-var (
-	OklinkBaseUrl = "https://www.oklink.com/"
-	OklinkApiKey  = "5181d535-b68f-41cf-bbc6-25905e46b6a6"
-	OkTimeout     = time.Second * 20
-)
-
 type SolData struct {
-	SolScanCli *solscan.ChainExplorerAdaptor
+	SolDataCli *solscan.ChainExplorerAdaptor
 }
 
 func NewSolScanClient(baseUrl, apiKey string, timeout time.Duration) (*SolData, error) {
@@ -26,7 +21,7 @@ func NewSolScanClient(baseUrl, apiKey string, timeout time.Duration) (*SolData, 
 		log.Error("New solscan client fail", "err", err)
 		return nil, err
 	}
-	return &SolData{SolScanCli: solCli}, err
+	return &SolData{SolDataCli: solCli}, err
 }
 
 func (ss *SolData) GetTxByAddress(page, pagesize uint64, address string, action account.ActionType) (*account.TransactionResponse[account.AccountTxResponse], error) {
@@ -38,7 +33,9 @@ func (ss *SolData) GetTxByAddress(page, pagesize uint64, address string, action 
 		Action:  action,
 		Address: address,
 	}
-	txData, err := ss.SolScanCli.GetTxByAddress(request)
+	fmt.Printf("%#v\n", request)
+	txData, err := ss.SolDataCli.GetTxByAddress(request)
+	fmt.Printf("%#v\n", txData)
 	if err != nil {
 		return nil, err
 	}

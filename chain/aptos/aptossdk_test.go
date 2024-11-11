@@ -299,15 +299,14 @@ func VerifySignedTxn(signedTxn *aptos.SignedTransaction) (bool, string) {
 			isValid = false
 			messages = append(messages, "transfer amount cannot be zero")
 		}
-		// 可以添加最大金额限制
-		const MAX_TRANSFER_AMOUNT = uint64(1000000000000) // 示例值
+		const MAX_TRANSFER_AMOUNT = uint64(1000000000000)
 		if amount > MAX_TRANSFER_AMOUNT {
 			isValid = false
 			messages = append(messages, fmt.Sprintf("transfer amount exceeds maximum limit: %d", MAX_TRANSFER_AMOUNT))
 		}
 		messages = append(messages, fmt.Sprintf("Transfer Amount: %d", amount))
 
-		// 5. Verify sender has sufficient balance (需要查询链上数据)
+		// 5. Verify sender has sufficient balance
 		// totalRequired := amount + (rawTxn.MaxGasAmount * rawTxn.GasUnitPrice)
 		// if senderBalance < totalRequired {
 		//     isValid = false

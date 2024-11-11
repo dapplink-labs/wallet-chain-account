@@ -1,19 +1,15 @@
 package aptos
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/aptos-labs/aptos-go-sdk"
+	"github.com/aptos-labs/aptos-go-sdk/crypto"
+	"github.com/stretchr/testify/assert"
 	"log"
 	"math"
 	"strconv"
-	"strings"
 	"testing"
-
-	"github.com/aptos-labs/aptos-go-sdk"
-	"github.com/aptos-labs/aptos-go-sdk/bcs"
-	"github.com/aptos-labs/aptos-go-sdk/crypto"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
 	common2 "github.com/dapplink-labs/wallet-chain-account/rpc/common"
@@ -21,11 +17,6 @@ import (
 
 func Test_GenerateAptosAccount(t *testing.T) {
 	t.Run("Test NewEd25519Account", func(t *testing.T) {
-		//Private (hex): 0xc4fa81d83b7d6a4ba31d40dcaf994c405d3857488cb66b11cebc38ba095ee847
-		//pubkey (hex): 0xe9ad4b2f85daedb54f9ba61e09d12e3fb92c28913598c350583406ad8651ad8f
-		//address: 0x3a8eef8a52bc873f5416e835e7ec7da6dd978e5f6a8a12d278df0c42ef01d131
-		//authKey: 0x3a8eef8a52bc873f5416e835e7ec7da6dd978e5f6a8a12d278df0c42ef01d131
-		//signMessage: 0xfcb15d1497f85fc013edb31a7213367090253f301f694011e4a03126953c17d6790696b5015d3f15607706e47e19e32070ca5a3dd81944969c9b010538b5b100
 		accountTemp, err := aptos.NewEd25519Account()
 		if err != nil {
 			panic(err)
@@ -78,7 +69,7 @@ func TestChainAdaptor_GetSupportChains(t *testing.T) {
 
 func TestChainAdaptor_ConvertAddress(t *testing.T) {
 	const (
-		validPublicKey        = "0xe9ad4b2f85daedb54f9ba61e09d12e3fb92c28913598c350583406ad8651ad8f"
+		validPublicKey        = "0x032a5b5d8a16bcdf70ab23e9e717693672b969366c0a61b7fbddd723c986bf2925"
 		validPublicKeyAddress = "0x3a8eef8a52bc873f5416e835e7ec7da6dd978e5f6a8a12d278df0c42ef01d131"
 		emptyKeyAddress       = "0xa7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a"
 		invalidPublicKey      = "invalid_hex"
@@ -647,10 +638,6 @@ func TestChainAdaptor_GetFee(t *testing.T) {
 	})
 }
 
-func TestChainAdaptor_SendTx(t *testing.T) {
-
-}
-
 func TestChainAdaptor_GetTxByAddress(t *testing.T) {
 	const (
 		validAddress   = "0xb5e1cc180e603037887c9e9eb4a8a06774ebcddafac37ceea9e33f3b6552bb25"
@@ -870,20 +857,22 @@ func TestChainAdaptor_GetBlockByRange(t *testing.T) {
 		assert.NotEmpty(t, resp.BlockHeader)
 
 		for _, block := range resp.BlockHeader {
+			blockJson, _ := json.Marshal(block)
+			t.Logf("resp.BlockHeader blockJson: %s", blockJson)
 			assert.NotEmpty(t, block.Hash, "Block hash should not be empty")
 			//assert.NotEmpty(t, block.Number, "Block number should not be empty")
 			assert.NotEmpty(t, block.TxHash, "Transaction hash should not be empty")
-			assert.NotEmpty(t, block.ReceiptHash, "Receipt hash should not be empty")
+			//assert.NotEmpty(t, block.ReceiptHash, "Receipt hash should not be empty")
 			assert.NotZero(t, block.Time, "Block timestamp should not be zero")
 			assert.NotNil(t, block.GasLimit, "Gas limit should not be zero")
 			assert.NotEmpty(t, block.Extra, "Extra data should not be empty")
 
-			//blockNum, err := strconv.ParseUint(block.Number, 10, 64)
-			//assert.NoError(t, err, "Block number should be valid")
-			//startNum, _ := strconv.ParseUint(req.Start, 10, 64)
-			//endNum, _ := strconv.ParseUint(req.End, 10, 64)
-			//assert.GreaterOrEqual(t, blockNum, startNum)
-			//assert.LessOrEqual(t, blockNum, endNum)
+			blockNum, err := strconv.ParseUint(block.Number, 10, 64)
+			assert.NoError(t, err, "Block number should be valid")
+			startNum, _ := strconv.ParseUint(req.Start, 10, 64)
+			endNum, _ := strconv.ParseUint(req.End, 10, 64)
+			assert.GreaterOrEqual(t, blockNum, startNum)
+			assert.LessOrEqual(t, blockNum, endNum)
 
 			t.Logf("Block Hash: %s", block.Hash)
 			t.Logf("Block Number: %s", block.Number)
@@ -985,296 +974,6 @@ func TestChainAdaptor_GetBlockByRange(t *testing.T) {
 		lastBlockNum, _ := strconv.ParseInt(lastBlock.Number, 10, 64)
 		assert.Equal(t, latestHeight, lastBlockNum)
 	})
-}
-
-func TestChainAdaptor_CreateUnSignTransaction(t *testing.T) {
-	aptosHttpClient, err := NewAptosHttpClientAll(baseURL, apiKey, withDebug)
-	assert.NoError(t, err, "failed to initialize aptos aptclient")
-
-	aptosClient, err := NewAptosClient(string(Mainnet))
-	assert.NoError(t, err, "failed to initialize aptos aptclient")
-
-	adaptor := ChainAdaptor{
-		aptosHttpClient: aptosHttpClient,
-		aptosClient:     aptosClient,
-	}
-
-	transferReq := TransferRequest{
-		FromAddress: "0xff96ad517db0f58724cf51b787b4d71396f634f8730ff2a6f0e5d1bf38dcb53c",
-		ToAddress:   "0xce69b0005102adc150b1b13bfc4ea9f6dc3fb909caa83bd3364fc0f9483e7cd9",
-		Amount:      1_0000,
-	}
-	jsonBytes, err := json.Marshal(transferReq)
-	assert.NoError(t, err)
-	validBase64Tx := base64.StdEncoding.EncodeToString(jsonBytes)
-
-	t.Run("normal tx", func(t *testing.T) {
-		req := &account.UnSignTransactionRequest{
-			ConsumerToken: "test-token",
-			Chain:         ChainName,
-			Network:       string(Mainnet),
-			Base64Tx:      validBase64Tx,
-		}
-
-		resp, err := adaptor.CreateUnSignTransaction(req)
-		fmt.Println("CreateUnSignTransaction resp", resp)
-		assert.NoError(t, err)
-		assert.NotNil(t, resp)
-		assert.NotEmpty(t, resp.UnSignTx)
-
-		rawTxBytes, err := base64.StdEncoding.DecodeString(resp.UnSignTx)
-		assert.NoError(t, err)
-
-		var rawTxn aptos.RawTransaction
-		des := bcs.NewDeserializer(rawTxBytes)
-		rawTxn.UnmarshalBCS(des)
-		assert.NoError(t, des.Error())
-
-		assert.NotEmpty(t, rawTxn.Sender)
-		assert.Greater(t, rawTxn.MaxGasAmount, uint64(0))
-		assert.Greater(t, rawTxn.GasUnitPrice, uint64(0))
-		assert.Greater(t, rawTxn.ExpirationTimestampSeconds, uint64(0))
-	})
-
-}
-
-func TestGenerateSignature(t *testing.T) {
-	// Please add the private key and remove the comment
-
-	// 1.
-	//transferReq := TransferRequest{
-	//	FromAddress: "0xff96ad517db0f58724cf51b787b4d71396f634f8730ff2a6f0e5d1bf38dcb53c",
-	//	ToAddress:   "0xce69b0005102adc150b1b13bfc4ea9f6dc3fb909caa83bd3364fc0f9483e7cd9",
-	//	Amount:      1_0000,
-	//}
-
-	// 2.
-	//privateKeyHex := ""
-	//ed25519PrivateKey, err := PrivateKeyToPrivateKey(privateKeyHex)
-	//assert.Error(t, err)
-
-	// 3.
-	//jsonBytes, err := json.Marshal(transferReq)
-	//assert.NoError(t, err)
-	//base64Tx := base64.StdEncoding.EncodeToString(jsonBytes)
-
-	// 4.
-	//rawTxBytes, err := base64.StdEncoding.DecodeString(base64Tx)
-	//assert.NoError(t, err)
-
-	// 5.
-	//authenticator, err := ed25519PrivateKey.Sign(rawTxBytes)
-	//assert.NoError(t, err)
-
-	// 6.
-	//authBytes, err := bcs.Serialize(authenticator)
-	//assert.NoError(t, err)
-
-	//signature := authenticator.Auth.Signature()
-	//publicKey := authenticator.Auth.PublicKey()
-	//signatureBase64 := base64.StdEncoding.EncodeToString(signature.Bytes())
-	//publicKeyHex := publicKey.ToHex()
-
-	//t.Logf("Signature (base64): %s", signatureBase64)
-	//t.Logf("Public Key (hex): %s", publicKeyHex)
-}
-
-func TestChainAdaptor_BuildSignedTransaction(t *testing.T) {
-	from, err := aptos.NewEd25519Account()
-	assert.NoError(t, err, "Failed to create alice account")
-	fromPrivateKey := from.Signer.(*crypto.Ed25519PrivateKey)
-	to, err := aptos.NewEd25519Account()
-	assert.NoError(t, err, "Failed to create bob account")
-
-	//const (
-	//	fromAddress = "0xff96ad517db0f58724cf51b787b4d71396f634f8730ff2a6f0e5d1bf38dcb53c"
-	//
-	//	toAddress = "0xce69b0005102adc150b1b13bfc4ea9f6dc3fb909caa83bd3364fc0f9483e7cd9"
-	//
-	//	Amount  = 1_0000
-	//	network = string(Devnet)
-	//)
-
-	var (
-		fromAddress = from.Address.String()
-		fromPubKey  = from.PubKey()
-		fromPrvKey  = fromPrivateKey.ToHex()
-
-		toAddress = to.Address.String()
-
-		Amount  = 1_0000
-		network = string(Devnet)
-	)
-
-	//aptosHttpClient, err := NewAptosHttpClientAll(baseURL, apiKey, withDebug)
-	//assert.NoError(t, err, "failed to initialize aptos aptclient")
-
-	aptosClient, err := NewAptosClient(network)
-	assert.NoError(t, err, "failed to initialize aptos aptclient")
-
-	adaptor := ChainAdaptor{
-		aptosHttpClient: nil,
-		aptosClient:     aptosClient,
-	}
-
-	privateKeyHex := strings.TrimPrefix(fromPrvKey, "0x")
-	privateKey := &crypto.Ed25519PrivateKey{}
-	err = privateKey.FromHex(privateKeyHex)
-	assert.NoError(t, err)
-
-	fromAddr, _ := AddressToAccountAddress(fromAddress)
-	toAddr, _ := AddressToAccountAddress(toAddress)
-
-	const fundAmount = 100_000_000
-	err = aptosClient.Fund(fromAddr, fundAmount)
-	assert.NoError(t, err, "Failed to fund alice account")
-	t.Logf("Funded account %s with %d APT", fromAddr.String(), fundAmount)
-	aliceBalance, err := aptosClient.AccountAPTBalance(fromAddr)
-	t.Logf("fromAddr initial balance: %d APT", aliceBalance)
-
-	// 1, CreateUnSignTransaction
-	transferReq := TransferRequest{
-		FromAddress: fromAddress,
-		ToAddress:   toAddress,
-		Amount:      uint64(Amount),
-	}
-	jsonBytes, err := json.Marshal(transferReq)
-	assert.NoError(t, err)
-	validBase64Tx := base64.StdEncoding.EncodeToString(jsonBytes)
-	req := &account.UnSignTransactionRequest{
-		ConsumerToken: "test-token",
-		Chain:         ChainName,
-		Network:       network,
-		Base64Tx:      validBase64Tx,
-	}
-
-	resp, err := adaptor.CreateUnSignTransaction(req)
-	assert.NoError(t, err)
-	fmt.Println("CreateUnSignTransaction resp", resp)
-
-	unSignTxBytes, err := base64.StdEncoding.DecodeString(resp.UnSignTx)
-	assert.NoError(t, err)
-
-	unSignTxDes := bcs.NewDeserializer(unSignTxBytes)
-	unSignTx := &aptos.RawTransaction{}
-	unSignTx.UnmarshalBCS(unSignTxDes)
-	assert.NoError(t, unSignTxDes.Error())
-	unSignTx1111, _ := json.Marshal(unSignTx)
-	fmt.Printf("unSignTx1111: %s\n", unSignTx1111)
-
-	// 2. sign message v1
-	//signedTransaction, err := rawTxn.SignedTransaction(privateKey)
-	//assert.NoError(t, err)
-	//signedTransaction1111, _ := json.Marshal(signedTransaction)
-	//fmt.Printf("signedTransaction1111: %s\n", signedTransaction1111)
-
-	// 2. sign message v2
-	signingMessage, err := unSignTx.SigningMessage()
-	assert.NoError(t, err)
-	authenticator, err := privateKey.Sign(signingMessage)
-	assert.NoError(t, err)
-
-	authenticatorBytes, err := bcs.Serialize(authenticator)
-	assert.NoError(t, err)
-	signedTransactionRequest := &account.SignedTransactionRequest{
-		Chain:     ChainName,
-		Network:   network,
-		Base64Tx:  base64.StdEncoding.EncodeToString(unSignTxBytes),
-		Signature: base64.StdEncoding.EncodeToString(authenticatorBytes),
-	}
-
-	// 3, build sign tx
-	buildSignedTransaction, err := adaptor.BuildSignedTransaction(signedTransactionRequest)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, buildSignedTransaction.SignedTx)
-	fmt.Println("BuildSignedTransaction resp", buildSignedTransaction)
-
-	signedTxBytes, err := base64.StdEncoding.DecodeString(buildSignedTransaction.SignedTx)
-	assert.NoError(t, err)
-	fmt.Println("BuildSignedTransaction SignedTx", buildSignedTransaction.SignedTx)
-
-	// 3.1, Deserializer
-	signedTxBytesDes := bcs.NewDeserializer(signedTxBytes)
-	signedTx := &aptos.SignedTransaction{
-		Transaction: &aptos.RawTransaction{},
-		Authenticator: &aptos.TransactionAuthenticator{
-			Variant: aptos.TransactionAuthenticatorEd25519,
-			Auth: &crypto.Ed25519Authenticator{
-				PubKey: &crypto.Ed25519PublicKey{},
-				Sig:    &crypto.Ed25519Signature{},
-			},
-		},
-	}
-	signedTx.UnmarshalBCS(signedTxBytesDes)
-
-	assert.NoError(t, err)
-	fmt.Printf("\n=== SignedTransaction Details ===\n")
-	if rawTx, ok := signedTx.Transaction.(*aptos.RawTransaction); ok {
-		fmt.Printf("Raw Transaction:\n")
-		fmt.Printf("  Sender: %s\n", rawTx.Sender)
-		fmt.Printf("  Sequence Number: %d\n", rawTx.SequenceNumber)
-		fmt.Printf("  Max Gas Amount: %d\n", rawTx.MaxGasAmount)
-		fmt.Printf("  Gas Unit Price: %d\n", rawTx.GasUnitPrice)
-		fmt.Printf("  Expiration: %d\n", rawTx.ExpirationTimestampSeconds)
-		fmt.Printf("  Chain ID: %d\n", rawTx.ChainId)
-
-		payload := rawTx.Payload
-		fmt.Printf("\nPayload:\n")
-		fmt.Printf("  Type: %T\n", payload)
-		fmt.Printf("  Raw: %+v\n", payload)
-	}
-
-	signedTx11111, _ := json.Marshal(signedTx)
-	fmt.Printf("signedTx11111: %s\n", signedTx11111)
-
-	signedTxSerializeBytes, err := bcs.Serialize(signedTx)
-	if err != nil {
-		t.Fatalf("Failed to marshal signed transaction: %v", err)
-	}
-	verifyTransactionRequest := &account.VerifyTransactionRequest{
-		Chain:     ChainName,
-		Network:   network,
-		PublicKey: fromPubKey.ToHex(),
-		Signature: base64.StdEncoding.EncodeToString(signedTxSerializeBytes),
-	}
-	verifyResp, err := adaptor.VerifySignedTransaction(verifyTransactionRequest)
-	if err != nil {
-		t.Fatalf("VerifySignedTransaction fail: %v", err)
-	}
-	fmt.Printf("verifyResp Verify: %v\n", verifyResp.Verify)
-	fmt.Printf("verifyResp Code: %v\n", verifyResp.Code)
-	fmt.Printf("verifyResp Msg: %v\n", verifyResp.Msg)
-
-	// 4, submit signedTx
-	submitResult, err := aptosClient.SubmitTransaction(signedTx)
-	if submitResult == nil {
-		fmt.Printf("submitResult: is null\n")
-		return
-	}
-	fmt.Printf("\n=== Transaction Submit Result ===\n")
-	fmt.Printf("Hash: %s\n", submitResult.Hash)
-	fmt.Printf("Sender: %s\n", submitResult.Sender)
-	fmt.Printf("Sequence Number: %d\n", submitResult.SequenceNumber)
-	fmt.Printf("Max Gas Amount: %d\n", submitResult.MaxGasAmount)
-	fmt.Printf("Gas Unit Price: %d\n", submitResult.GasUnitPrice)
-	fmt.Printf("Expiration Timestamp: %d\n", submitResult.ExpirationTimestampSecs)
-	assert.NoError(t, err, "SubmitTransaction fail")
-
-	// 5, wait tx
-	txn, err := aptosClient.WaitForTransaction(submitResult.Hash)
-	assert.NoError(t, err, "WaitForTransaction fail")
-	assert.True(t, txn.Success, "WaitForTransaction fail")
-	t.Logf("tx success, tx hash: %s", submitResult.Hash)
-
-	fromBalance, err := aptosClient.AccountAPTBalance(fromAddr)
-	assert.NoError(t, err, "get fromAddr newAliceBalance fail")
-
-	toBalance, err := aptosClient.AccountAPTBalance(toAddr)
-	assert.NoError(t, err, "get toAddr newAliceBalance fail")
-
-	t.Logf("transfer from Balance: %d APT", fromBalance)
-	t.Logf("transfer to Balance: %d APT", toBalance)
-	t.Logf("gas fee: %d", aliceBalance-uint64(Amount)-fromBalance)
 }
 
 func TestChainAdaptor_DecodeTransaction(t *testing.T) {

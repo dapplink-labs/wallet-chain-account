@@ -2,48 +2,51 @@ package ton
 
 import (
 	"context"
-	"fmt"
-	"github.com/xssnick/tonutils-go/tlb"
 
+	"github.com/ethereum/go-ethereum/log"
+
+	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/liteclient"
 	"github.com/xssnick/tonutils-go/ton"
+
+	"github.com/dapplink-labs/wallet-chain-account/config"
 )
 
-// TonClient 封装了与 TON 区块链交互的客户端
 type TonClient struct {
-	api *ton.APIClient
+	client *liteclient.ConnectionPool
+	api    ton.APIClientWrapped
 }
 
-// DialTonClient 初始化并返回一个 TonClient 实例
-func DialTonClient(ctx context.Context, rpcUrl string) (*TonClient, error) {
+func NewTonClients(conf *config.Config) (*TonClient, error) {
+	cfg, err := liteclient.GetConfigFromUrl(context.Background(), conf.WalletNode.Ton.RpcUrl)
+	if err != nil {
+		log.Error("get config from ton url fail", "err", err)
+		return nil, err
+	}
+
 	client := liteclient.NewConnectionPool()
-	// 从配置 URL 添加连接
-	err := client.AddConnectionsFromConfigUrl(ctx, rpcUrl)
+	err = client.AddConnectionsFromConfig(context.Background(), cfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to add connections: %w", err)
+		log.Error("add connections from config fail", "err", err)
+		return nil, err
 	}
-	api := ton.NewAPIClient(client)
-	return &TonClient{api: api}, nil
+	api := ton.NewAPIClient(client, ton.ProofCheckPolicyFast).WithRetry()
+	api.SetTrustedBlockFromConfig(cfg)
+
+	return &TonClient{
+		client: client,
+		api:    api,
+	}, nil
 }
 
-// GetBlockByNumber 根据区块高度获取区块
-func (c *TonClient) GetBlockByNumber(number uint32) (*tlb.Block, error) {
-	ctx := context.Background()
-	// 获取主链最新区块信息
-	masterInfo, err := c.api.CurrentMasterchainInfo(ctx)
+func (tc *TonClient) GetAccountInfo(addr string) (string, uint64, error) {
+	block, err := tc.api.CurrentMasterchainInfo(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("获取主链信息失败: %w", err)
+		return "0", 0, err
 	}
-	// 查找指定高度的区块
-	blockID, err := c.api.LookupBlock(ctx, masterInfo.Workchain, masterInfo.Shard, number)
+	acc, err := tc.api.GetAccount(context.Background(), block, address.MustParseAddr(addr))
 	if err != nil {
-		return nil, fmt.Errorf("查找区块失败: %w", err)
+		return "", 0, err
 	}
-	// 获取区块详细信息
-	block, err := c.api.GetBlockData(ctx, blockID)
-
-	if err != nil {
-		return nil, fmt.Errorf("获取区块失败: %w", err)
-	}
-	return block, nil
+	return acc.State.Balance.String(), acc.State.LastTransactionLT, nil
 }

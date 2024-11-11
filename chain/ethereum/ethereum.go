@@ -37,7 +37,7 @@ type ChainAdaptor struct {
 }
 
 func NewChainAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
-	ethClient, err := DialEthClient(context.Background(), conf.WalletNode.Eth.RPCs[0].RPCURL)
+	ethClient, err := DialEthClient(context.Background(), conf.WalletNode.Eth.RpcUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -544,7 +544,8 @@ func (c *ChainAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequ
 		Value:     amount,
 		Data:      buildData,
 	}
-	rawTx, txHash, err := CreateEip1559SignedTx(dFeeTx, []byte(req.Signature), chainID)
+	sigByte, _ := hex.DecodeString(req.Signature)
+	rawTx, txHash, err := CreateEip1559SignedTx(dFeeTx, sigByte, chainID)
 	if err != nil {
 		log.Error("create un sign tx fail", "err", err)
 		return &account.SignedTransactionResponse{

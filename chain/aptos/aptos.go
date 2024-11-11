@@ -2,18 +2,18 @@ package aptos
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"strconv"
-	"strings"
-
 	"github.com/aptos-labs/aptos-go-sdk"
 	"github.com/aptos-labs/aptos-go-sdk/bcs"
 	"github.com/aptos-labs/aptos-go-sdk/crypto"
 	"github.com/ethereum/go-ethereum/log"
+	"strconv"
+	"strings"
 
 	"github.com/dapplink-labs/wallet-chain-account/chain"
 	"github.com/dapplink-labs/wallet-chain-account/config"
@@ -30,7 +30,7 @@ type ChainAdaptor struct {
 }
 
 func NewChainAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
-	rpcUrl := conf.WalletNode.Aptos.RPCs[0].RPCURL
+	rpcUrl := conf.WalletNode.Aptos.RpcUrl
 	apiKey := conf.WalletNode.Aptos.DataApiKey
 
 	aptosHttpClient, err := NewAptosHttpClient(rpcUrl, apiKey)
@@ -375,8 +375,40 @@ func (c *ChainAdaptor) SendTx(req *account.SendTxRequest) (*account.SendTxRespon
 		err := fmt.Errorf("SendTx validateChainAndNetwork fail, err msg = %s", msg)
 		return response, err
 	}
-	//TODO implement me
-	panic("implement me")
+	rawTx := req.RawTx
+
+	rawTxByteList, err := base64.StdEncoding.DecodeString(rawTx)
+	if err != nil {
+		err := fmt.Errorf("SendTx DecodeString rawTx failed: %w", err)
+		log.Error("err", err)
+		response.Msg = err.Error()
+		return nil, err
+	}
+
+	signedTxListDes := bcs.NewDeserializer(rawTxByteList)
+	signedTx := &aptos.SignedTransaction{
+		Transaction: &aptos.RawTransaction{},
+		Authenticator: &aptos.TransactionAuthenticator{
+			Variant: aptos.TransactionAuthenticatorEd25519,
+			Auth: &crypto.Ed25519Authenticator{
+				PubKey: &crypto.Ed25519PublicKey{},
+				Sig:    &crypto.Ed25519Signature{},
+			},
+		},
+	}
+	signedTx.UnmarshalBCS(signedTxListDes)
+
+	submitTransactionResponse, err := c.aptosClient.SubmitTransaction(signedTx)
+	if err != nil {
+		err := fmt.Errorf("SendTx SubmitTransaction rawTx failed: %w", err)
+		log.Error("err", err)
+		response.Msg = err.Error()
+		return nil, err
+	}
+	response.Code = common2.ReturnCode_SUCCESS
+	response.Msg = "SubmitTransaction success"
+	response.TxHash = submitTransactionResponse.Hash
+	return response, nil
 }
 
 func (c *ChainAdaptor) GetTxByAddress(req *account.TxAddressRequest) (*account.TxAddressResponse, error) {
@@ -520,58 +552,72 @@ func (c *ChainAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*accou
 		err := fmt.Errorf("GetBlockByRange validateChainAndNetwork fail, err msg = %s", msg)
 		return response, err
 	}
-	startVersion, err := strconv.ParseUint(req.Start, 10, 64)
+	startBlock, err := strconv.ParseUint(req.Start, 10, 64)
 	if err != nil {
 		err := fmt.Errorf("GetBlockByRange startVersion failed: %w", err)
 		log.Error("err", err)
 		response.Msg = err.Error()
 		return nil, err
 	}
-	endVersion, err := strconv.ParseUint(req.End, 10, 64)
+	endBlock, err := strconv.ParseUint(req.End, 10, 64)
 	if err != nil {
 		err := fmt.Errorf("GetBlockByRange endVersion failed: %w", err)
 		log.Error("err", err)
 		response.Msg = err.Error()
 		return nil, err
 	}
-	if startVersion > endVersion {
-		err := fmt.Errorf("GetBlockByRange startVersion > endVersion failed: %w", err)
+	if startBlock > endBlock {
+		err := fmt.Errorf("GetBlockByRange startBlock > endBlock failed: %w", err)
 		log.Error("err", err)
 		response.Msg = err.Error()
 		return nil, err
 	}
-	txs, err := c.aptosHttpClient.GetTransactionByVersionRange(startVersion, endVersion)
-	if err != nil {
-		err := fmt.Errorf("GetBlockByRange GetTransactionByVersionRange failed: %w", err)
-		log.Error("err", err)
-		response.Msg = err.Error()
-		return nil, err
-	}
+	response.BlockHeader = make([]*account.BlockHeader, 0, (endBlock-startBlock)*5)
 
-	for _, tx := range txs {
-		blockByVersion, err := c.aptosHttpClient.GetBlockByVersion(tx.Version)
+	for height := startBlock; height <= endBlock; height++ {
+		block, err := c.aptosHttpClient.GetBlockByHeight(height)
 		if err != nil {
-			err := fmt.Errorf("GetBlockByRange GetBlockByVersion failed: %w", err)
+			err := fmt.Errorf("GetBlockByRange GetBlockByHeight failed at height %d: %w", height, err)
+			log.Error("err", err)
+			response.Msg = err.Error()
+			return nil, err
+		}
+		startVersion := block.FirstVersion
+		endVersion := block.LastVersion
+		txs, err := c.aptosHttpClient.GetTransactionByVersionRange(startVersion, endVersion)
+		if err != nil {
+			err := fmt.Errorf("GetBlockByRange GetTransactionByVersionRange failed: %w", err)
 			log.Error("err", err)
 			response.Msg = err.Error()
 			return nil, err
 		}
 
-		blockHeader := &account.BlockHeader{
-			Hash: blockByVersion.BlockHash,
-			//ParentHash:  tx.StateRootHash,
-			//Root:        tx.StateRootHash,
-			TxHash:      tx.Hash,
-			ReceiptHash: tx.EventRootHash,
-			Number:      strconv.FormatUint(blockByVersion.BlockHeight, 10),
-			GasLimit:    tx.MaxGasAmount,
-			GasUsed:     tx.GasUsed,
-			Time:        blockByVersion.BlockTimestamp,
-			Extra:       convertExtraInfo(tx),
-			Nonce:       strconv.FormatUint(tx.SequenceNumber, 10),
+		for _, tx := range txs {
+			blockByVersion, err := c.aptosHttpClient.GetBlockByVersion(tx.Version)
+			if err != nil {
+				err := fmt.Errorf("GetBlockByRange GetBlockByVersion failed: %w", err)
+				log.Error("err", err)
+				response.Msg = err.Error()
+				return nil, err
+			}
+
+			blockHeader := &account.BlockHeader{
+				Hash: blockByVersion.BlockHash,
+				//ParentHash:  tx.StateRootHash,
+				//Root:        tx.StateRootHash,
+				TxHash:      tx.Hash,
+				ReceiptHash: tx.EventRootHash,
+				Number:      strconv.FormatUint(blockByVersion.BlockHeight, 10),
+				GasLimit:    tx.MaxGasAmount,
+				GasUsed:     tx.GasUsed,
+				Time:        blockByVersion.BlockTimestamp,
+				Extra:       convertExtraInfo(tx),
+				Nonce:       strconv.FormatUint(tx.SequenceNumber, 10),
+			}
+			response.BlockHeader = append(response.BlockHeader, blockHeader)
 		}
-		response.BlockHeader = append(response.BlockHeader, blockHeader)
 	}
+
 	response.Code = common2.ReturnCode_SUCCESS
 	response.Msg = "GetBlockByRange success"
 	return response, nil
@@ -583,75 +629,53 @@ func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionReq
 		Msg:      "",
 		UnSignTx: "",
 	}
-
 	if ok, msg := validateChainAndNetwork(req.Chain, req.Network); !ok {
 		response.Msg = msg
 		err := fmt.Errorf("CreateUnSignTransaction validateChainAndNetwork fail, err msg = %s", msg)
 		return response, err
 	}
-
-	jsonBytes, err := base64.StdEncoding.DecodeString(req.Base64Tx)
+	if req.Base64Tx == "" {
+		response.Msg = "base64_tx cannot be empty"
+		return response, errors.New(response.Msg)
+	}
+	txByteList, err := base64.StdEncoding.DecodeString(req.Base64Tx)
 	if err != nil {
-		err := fmt.Errorf("CreateUnSignTransaction DecodeString failed: %w", err)
-		log.Error("err", err)
-		response.Msg = err.Error()
-		return nil, err
-	}
-
-	var data TransferRequest
-	if err := json.Unmarshal(jsonBytes, &data); err != nil {
-		err := fmt.Errorf("CreateUnSignTransaction Unmarshal failed: %w", err)
-		log.Error("err", err)
-		response.Msg = err.Error()
-		return nil, err
-	}
-	if data.Amount == 0 {
-		err := fmt.Errorf("CreateUnSignTransaction data.Amount == 0 failed: %w", err)
-		log.Error("err", err)
-		response.Msg = err.Error()
-		return nil, err
-	}
-	transferAmount := data.Amount
-	fromAddress, err := AddressToAccountAddress(data.FromAddress)
-	if err != nil {
-		err := fmt.Errorf("CreateUnSignTransaction FromAddress failed: %w", err)
-		log.Error("err", err)
-		response.Msg = err.Error()
-		return nil, err
-	}
-	toAddress, err := AddressToAccountAddress(data.ToAddress)
-	if err != nil {
-		err := fmt.Errorf("CreateUnSignTransaction ToAddress failed: %w", err)
-		log.Error("err", err)
-		response.Msg = err.Error()
-		return nil, err
-	}
-	// TODO Need to support more coinType
-	transferPayload, err := aptos.CoinTransferPayload(nil, toAddress, transferAmount)
-	if err != nil {
-		err := fmt.Errorf("CreateUnSignTransaction CoinTransferPayload failed: %w", err)
+		err := fmt.Errorf("CreateUnSignTransaction failed to decode base64 transaction: %w", err)
 		log.Error("err", err)
 		response.Msg = err.Error()
 		return nil, err
 	}
 
-	rawTxn, err := c.aptosClient.BuildTransaction(
-		fromAddress,
-		aptos.TransactionPayload{Payload: transferPayload},
-	)
-	rawTxnBytes, err := bcs.Serialize(rawTxn)
-	if err != nil {
-		err := fmt.Errorf("CreateUnSignTransaction rawTxn Serialize failed: %w", err)
+	var txRequest TransactionRequest
+	if err := json.Unmarshal(txByteList, &txRequest); err != nil {
+		err := fmt.Errorf("CreateUnSignTransaction failed to unmarshal transaction request: %w", err)
 		log.Error("err", err)
 		response.Msg = err.Error()
 		return nil, err
 	}
-	base64Tx := base64.StdEncoding.EncodeToString(rawTxnBytes)
+
+	rawTransaction, err := ConvertToRawTransaction(&txRequest)
+	if err != nil {
+		err := fmt.Errorf("CreateUnSignTransaction failed to ConvertToRawTransaction: %w", err)
+		log.Error("err", err)
+		response.Msg = err.Error()
+		return nil, err
+	}
+
+	signingMessage, err := rawTransaction.SigningMessage()
+	if err != nil {
+		err := fmt.Errorf("CreateUnSignTransaction failed to SigningMessage: %w", err)
+		log.Error("err", err)
+		response.Msg = err.Error()
+		return nil, err
+	}
+
+	signingMessageHex := hex.EncodeToString(signingMessage)
 
 	response.Code = common2.ReturnCode_SUCCESS
-	response.UnSignTx = base64Tx
 	response.Msg = "CreateUnSignTransaction success"
-	return response, err
+	response.UnSignTx = signingMessageHex
+	return response, nil
 }
 
 func (c *ChainAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequest) (*account.SignedTransactionResponse, error) {
@@ -665,61 +689,93 @@ func (c *ChainAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequ
 		err := fmt.Errorf("BuildSignedTransaction validateChainAndNetwork fail, err msg = %s", msg)
 		return response, err
 	}
-	if req.Base64Tx == "" || req.Signature == "" {
+	if req.Base64Tx == "" || req.Signature == "" || req.PublicKey == "" {
 		err := fmt.Errorf("req.Base64Tx or req.Signature is empty")
-		log.Error("BuildSignedTransaction req.Base64Tx or req.Signature is empty", "err", err)
+		log.Error("BuildSignedTransaction Base64Tx or Signature or PublicKey is empty", "err", err)
 		return nil, err
 	}
 
-	rawTxBytes, err := base64.StdEncoding.DecodeString(req.Base64Tx)
+	txByteList, err := base64.StdEncoding.DecodeString(req.Base64Tx)
 	if err != nil {
 		err := fmt.Errorf("BuildSignedTransaction DecodeString rawTx failed: %w", err)
 		log.Error("err", err)
 		response.Msg = err.Error()
 		return nil, err
 	}
-	authBytes, err := base64.StdEncoding.DecodeString(req.Signature)
+	var txRequest TransactionRequest
+	if err := json.Unmarshal(txByteList, &txRequest); err != nil {
+		err := fmt.Errorf("CreateUnSignTransaction failed to unmarshal transaction request: %w", err)
+		log.Error("err", err)
+		response.Msg = err.Error()
+		return nil, err
+	}
+	rawTransaction, err := ConvertToRawTransaction(&txRequest)
 	if err != nil {
-		err := fmt.Errorf("BuildSignedTransaction DecodeString signature failed: %w", err)
+		err := fmt.Errorf("CreateUnSignTransaction failed to ConvertToRawTransaction: %w", err)
 		log.Error("err", err)
 		response.Msg = err.Error()
 		return nil, err
 	}
-
-	des := bcs.NewDeserializer(rawTxBytes)
-	rawTxn := &aptos.RawTransaction{}
-	rawTxn.UnmarshalBCS(des)
-	if des.Error() != nil {
-		err := fmt.Errorf("BuildSignedTransaction rawTxn.UnmarshalBCS failed: %w", err)
-		log.Error("err", err)
-		response.Msg = err.Error()
-		return nil, err
-	}
-
-	authDes := bcs.NewDeserializer(authBytes)
-	accountAuth := &crypto.AccountAuthenticator{}
-	accountAuth.UnmarshalBCS(authDes)
-	if authDes.Error() != nil {
-		err := fmt.Errorf("BuildSignedTransaction accountAuth.UnmarshalBCS failed: %w", err)
-		log.Error("err", err)
-		response.Msg = err.Error()
-		return nil, err
-	}
-
-	txnAuth, err := aptos.NewTransactionAuthenticator(accountAuth)
+	fmt.Printf("Transaction Details:\n")
+	fmt.Printf("Sender: %s\n", rawTransaction.Sender.String())
+	fmt.Printf("Sequence Number: %d\n", rawTransaction.SequenceNumber)
+	fmt.Printf("Expiration: %d\n", rawTransaction.ExpirationTimestampSeconds)
+	signingMessage, err := rawTransaction.SigningMessage()
 	if err != nil {
-		err := fmt.Errorf("BuildSignedTransaction NewTransactionAuthenticator failed: %w", err)
+		return nil, fmt.Errorf("get signing message failed: %w", err)
+	}
+
+	pubKeyHex := req.PublicKey
+	ed25519PublicKey, err := PubKeyHexToPubKey(pubKeyHex)
+	if err != nil {
+		err := fmt.Errorf("BuildSignedTransaction PubKeyHexToPubKey failed: %w", err)
 		log.Error("err", err)
 		response.Msg = err.Error()
 		return nil, err
+	}
+	signatureByteList, err := hex.DecodeString(req.Signature)
+	if err != nil {
+		return nil, fmt.Errorf("decode signature failed: %w", err)
+	}
+	if len(signatureByteList) != ed25519.SignatureSize {
+		return nil, fmt.Errorf("invalid signature length: got %d, want %d",
+			len(signatureByteList), ed25519.SignatureSize)
+	}
+	fmt.Printf("Verification Details:\n")
+	fmt.Printf("Public Key (hex): %x\n", ed25519PublicKey.Bytes())
+	fmt.Printf("Signing Message (hex): %x\n", signingMessage)
+	fmt.Printf("Signature (hex): %x\n", signatureByteList)
+	if !ed25519.Verify(ed25519PublicKey.Bytes(), signingMessage, signatureByteList) {
+		return nil, fmt.Errorf("signature verification failed")
+	}
+
+	signature := &crypto.Ed25519Signature{
+		Inner: [ed25519.SignatureSize]byte{},
+	}
+	copy(signature.Inner[:], signatureByteList)
+
+	authenticator := &aptos.TransactionAuthenticator{
+		Variant: aptos.TransactionAuthenticatorEd25519,
+		Auth: &crypto.Ed25519Authenticator{
+			PubKey: ed25519PublicKey,
+			Sig:    signature,
+		},
 	}
 
 	signedTxn := &aptos.SignedTransaction{
-		Transaction:   rawTxn,
-		Authenticator: txnAuth,
+		Transaction:   rawTransaction,
+		Authenticator: authenticator,
 	}
 
-	signedTxnSer, err := bcs.Serialize(signedTxn)
+	//signedTxnJson, err := json.Marshal(signedTxn)
+	//if err != nil {
+	//	err := fmt.Errorf("BuildSignedTransaction signedTxn json failed: %w", err)
+	//	log.Error("err", err)
+	//	response.Msg = err.Error()
+	//	return nil, err
+	//}
+
+	signedTxnByteList, err := bcs.Serialize(signedTxn)
 	if err != nil {
 		err := fmt.Errorf("BuildSignedTransaction signedTxn Serialize failed: %w", err)
 		log.Error("err", err)
@@ -727,7 +783,7 @@ func (c *ChainAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequ
 		return nil, err
 	}
 
-	signedTxBase64 := base64.StdEncoding.EncodeToString(signedTxnSer)
+	signedTxBase64 := base64.StdEncoding.EncodeToString(signedTxnByteList)
 
 	response.Code = common2.ReturnCode_SUCCESS
 	response.SignedTx = signedTxBase64
@@ -757,25 +813,30 @@ func (c *ChainAdaptor) DecodeTransaction(req *account.DecodeTransactionRequest) 
 func (c *ChainAdaptor) VerifySignedTransaction(req *account.VerifyTransactionRequest) (*account.VerifyTransactionResponse, error) {
 	response := &account.VerifyTransactionResponse{
 		Code:   common2.ReturnCode_ERROR,
-		Msg:    "",
 		Verify: false,
+		Msg:    "",
 	}
 
+	// 1. validateChainAndNetwork
 	if ok, msg := validateChainAndNetwork(req.Chain, req.Network); !ok {
 		response.Msg = msg
-		err := fmt.Errorf("VerifySignedTransaction validateChainAndNetwork fail, err msg = %s", msg)
+		return response, fmt.Errorf("validateChainAndNetwork fail: %s", msg)
+	}
+
+	if req.PublicKey == "" || req.Signature == "" {
+		err := fmt.Errorf("PublicKey or Signature is empty")
+		response.Msg = err.Error()
 		return response, err
 	}
 
+	// 2. DecodeString Signature
 	signedTxBytes, err := base64.StdEncoding.DecodeString(req.Signature)
 	if err != nil {
-		err := fmt.Errorf("VerifySignedTransaction DecodeString Signature failed: %w", err)
-		log.Error("err", err)
+		err = fmt.Errorf("decode signed transaction failed: %w", err)
 		response.Msg = err.Error()
-		return nil, err
+		return response, err
 	}
 
-	// 2. Deserializer
 	signedTx := &aptos.SignedTransaction{
 		Transaction: &aptos.RawTransaction{},
 		Authenticator: &aptos.TransactionAuthenticator{
@@ -786,155 +847,62 @@ func (c *ChainAdaptor) VerifySignedTransaction(req *account.VerifyTransactionReq
 			},
 		},
 	}
-	signedTx.UnmarshalBCS(bcs.NewDeserializer(signedTxBytes))
+	des := bcs.NewDeserializer(signedTxBytes)
+	signedTx.UnmarshalBCS(des)
 
-	var messages []string
-	isValid := true
-
-	rawTxn, ok := signedTx.Transaction.(*aptos.RawTransaction)
-	if !ok {
-		err := fmt.Errorf("VerifySignedTransaction signedTx.Transaction rawTxn failed: %w", err)
-		log.Error("err", err)
-		response.Msg = err.Error()
-		return response, err
-	}
-	signingMessage, err := rawTxn.SigningMessage()
+	message, err := signedTx.Transaction.SigningMessage()
 	if err != nil {
-		err := fmt.Errorf("VerifySignedTransaction rawTxn.SigningMessage failed: %w", err)
-		log.Error("err", err)
+		err = fmt.Errorf("get signing message failed: %w", err)
+		response.Msg = err.Error()
+		return response, err
+	}
+	//fmt.Printf("Message to verify (hex): %x\n", message)
+
+	if signedTx.Authenticator.Variant != aptos.TransactionAuthenticatorEd25519 {
+		err = fmt.Errorf("invalid authenticator variant")
+		response.Msg = err.Error()
+		return response, err
+	}
+	//fmt.Printf("verifyResp Msg: %T\n", signedTx.Authenticator.Auth)
+	auth, ok := signedTx.Authenticator.Auth.(*aptos.Ed25519TransactionAuthenticator)
+	if !ok {
+		err = fmt.Errorf("invalid authenticator type")
+		response.Msg = err.Error()
+		return response, err
+	}
+	ed25519Auth, ok := auth.Sender.Auth.(*crypto.Ed25519Authenticator)
+	if !ok {
+		err = fmt.Errorf("invalid authenticator type")
 		response.Msg = err.Error()
 		return response, err
 	}
 
-	auth := signedTx.Authenticator.Auth
-	if senderAuth, ok := auth.(*aptos.Ed25519TransactionAuthenticator); ok {
-		if ed25519Auth, ok := senderAuth.Sender.Auth.(*crypto.Ed25519Authenticator); ok {
-			// Step 1: Derive account address from the public key in signedTxn.Authenticator.Auth
-			accountAddress, err := PubKeyToAccountAddress(ed25519Auth.PubKey)
-			if err != nil {
-				err := fmt.Errorf("VerifySignedTransaction PubKeyToAccountAddress(ed25519Auth.PubKey) failed: %w", err)
-				log.Error("err", err)
-				response.Msg = err.Error()
-				return response, err
-			}
-			// Step 2: Verify if the derived address matches the sender address in raw transaction
-			// This ensures the transaction is truly from the claimed sender
-			// rawTxn.Sender from rawTxn, this is req.Sender.address
-			// accountAddress from signedTxn.Authenticator.Auth, this is signedTxn.address
-			if *accountAddress != rawTxn.Sender {
-				isValid = false
-				messages = append(messages, fmt.Sprintf("sender address mismatch\nexpected: %s\nactual: %s",
-					accountAddress.String(), rawTxn.Sender.String()))
-			}
-
-			// Verify if the signature is valid for this transaction
-			// ed25519Auth.PubKey: the public key of the signer
-			// Parameters:
-			// - signingMessage: the original transaction data to be signed
-			// - ed25519Auth.Sig: the signature created by the private key
-			if !ed25519Auth.PubKey.Verify(signingMessage, ed25519Auth.Sig) {
-				isValid = false
-				messages = append(messages, "invalid signature")
-			}
-		} else {
-			err := fmt.Errorf("VerifySignedTransaction invalid ed25519 authenticator type failed: %w", err)
-			log.Error("err", err)
-			response.Msg = err.Error()
-			return response, err
-		}
-	} else {
-		err := fmt.Errorf("VerifySignedTransaction invalid sender authenticator type failed: %w", err)
-		log.Error("err", err)
+	inputPubKey, err := PubKeyHexToPubKey(req.PublicKey)
+	if err != nil {
+		err = fmt.Errorf("invalid input public key: %w", err)
 		response.Msg = err.Error()
 		return response, err
 	}
 
-	// Step 4: Verify transaction basic parameters
-	messages = append(messages, fmt.Sprintf("\n=== Transaction Parameters ==="+
-		"\nSender Address: %s"+
-		"\nSequence Number: %d"+
-		"\nGas Limit: %d"+
-		"\nGas Unit Price: %d"+
-		"\nExpiration Time: %d"+
-		"\nChain ID: %d",
-		rawTxn.Sender.String(),
-		rawTxn.SequenceNumber,
-		rawTxn.MaxGasAmount,
-		rawTxn.GasUnitPrice,
-		rawTxn.ExpirationTimestampSeconds,
-		rawTxn.ChainId))
+	if !bytes.Equal(inputPubKey.Inner[:], ed25519Auth.PubKey.Inner[:]) {
+		response.Code = common2.ReturnCode_ERROR
+		response.Verify = false
+		response.Msg = "public key mismatch"
+		return response, nil
+	}
 
-	// Step 5: Verify transfer parameters if it's a transfer transaction
-	if entryFunction, ok := rawTxn.Payload.Payload.(*aptos.EntryFunction); ok {
-		messages = append(messages, "\n=== Transfer Parameters ===")
-
-		// 1. Verify module and function name
-		if entryFunction.Module.Name != "aptos_account" {
-			isValid = false
-			messages = append(messages, "invalid module name")
-		}
-		if entryFunction.Function != "transfer" {
-			isValid = false
-			messages = append(messages, "invalid function name")
-		}
-
-		// 2. Verify arguments length
-		if len(entryFunction.Args) < 2 {
-			//isValid = false
-			messages = append(messages, "insufficient transfer arguments")
-			//return isValid, strings.Join(messages, "\n")
-			tempMessgae := strings.Join(messages, "\n")
-			err := fmt.Errorf("VerifySignedTransaction %s : %w", tempMessgae, err)
-			log.Error("err", err)
-			response.Msg = err.Error()
-			return response, err
-		}
-
-		// 3. Verify recipient address
-		toAddrBytes := entryFunction.Args[0]
-		if len(toAddrBytes) != 32 { // Aptos address length
-			isValid = false
-			messages = append(messages, "invalid recipient address length")
-		}
-		messages = append(messages, fmt.Sprintf("Recipient Address (bytes): %x", toAddrBytes))
-
-		// 4. Verify transfer amount
-		amountBytes := entryFunction.Args[1]
-		if len(amountBytes) != 8 { // uint64 length
-			isValid = false
-			messages = append(messages, "invalid amount format")
-		}
-		amount := binary.LittleEndian.Uint64(amountBytes)
-
-		// Check amount constraints
-		if amount == 0 {
-			isValid = false
-			messages = append(messages, "transfer amount cannot be zero")
-		}
-		const MAX_TRANSFER_AMOUNT = uint64(1000000000000)
-		if amount > MAX_TRANSFER_AMOUNT {
-			isValid = false
-			messages = append(messages, fmt.Sprintf("transfer amount exceeds maximum limit: %d", MAX_TRANSFER_AMOUNT))
-		}
-		messages = append(messages, fmt.Sprintf("Transfer Amount: %d", amount))
-
-		// 5. Verify sender has sufficient balance
-		// totalRequired := amount + (rawTxn.MaxGasAmount * rawTxn.GasUnitPrice)
-		// if senderBalance < totalRequired {
-		//     isValid = false
-		//     messages = append(messages, "insufficient balance for transfer and gas")
-		// }
-
-		// 6. Verify recipient address is valid
-		if bytes.Equal(toAddrBytes, rawTxn.Sender[:]) {
-			isValid = false
-			messages = append(messages, "cannot transfer to self")
-		}
+	//fmt.Println("Verify message", hex.EncodeToString(message))
+	//fmt.Println("Verify Sig", hex.EncodeToString(ed25519Auth.Sig.Bytes()))
+	if !ed25519.Verify(ed25519Auth.PubKey.Inner[:], message, ed25519Auth.Sig.Inner[:]) {
+		response.Code = common2.ReturnCode_ERROR
+		response.Verify = false
+		response.Msg = "invalid signature"
+		return response, nil
 	}
 
 	response.Code = common2.ReturnCode_SUCCESS
-	response.Msg = "VerifySignedTransaction success"
-	response.Verify = isValid
+	response.Verify = true
+	response.Msg = "transaction verified"
 	return response, nil
 }
 

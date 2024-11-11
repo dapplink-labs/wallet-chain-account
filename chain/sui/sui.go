@@ -3,39 +3,47 @@ package sui
 import (
 	"encoding/hex"
 	"fmt"
+
+	"math/big"
+	"regexp"
+	"strings"
+
+	"github.com/ethereum/go-ethereum/log"
+	"golang.org/x/crypto/blake2b"
+
 	"github.com/block-vision/sui-go-sdk/models"
+
 	"github.com/dapplink-labs/wallet-chain-account/chain"
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
 	common2 "github.com/dapplink-labs/wallet-chain-account/rpc/common"
-	"github.com/ethereum/go-ethereum/log"
-	"golang.org/x/crypto/blake2b"
-	"math/big"
-	"regexp"
-	"strings"
 )
 
-const ChainName = "Sui"
-const SuiCoinType = "0x2::sui::SUI"
-const PUBLIC_KEY_SIZE = 32    // 假设公钥大小为32字节
-const SUI_ADDRESS_LENGTH = 32 // 假设 Sui 地址长度为 20 字节
+const (
+	ChainName   = "Sui"
+	SuiCoinType = "0x2::sui::SUI"
+
+	PublicKeySize    = 32
+	SuiAddressLength = 32
+)
+
 var SIGNATURE_SCHEME_TO_FLAG = map[string]byte{
-	"ED25519": 0x00, // 这只是一个示例，实际值应根据实际情况定义
+	"ED25519": 0x00,
 }
 
 type SuiAdaptor struct {
 	suiClient *SuiClient
 }
 
-func NewSuiAdaptor(conf *config.Config) chain.IChainAdaptor {
+func NewSuiAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
 	client, err := NewSuiClient(conf)
 	if err != nil {
 		log.Error("Init Sui Client err", "err", err)
-		return nil
+		return nil, err
 	}
 	return SuiAdaptor{
 		suiClient: client,
-	}
+	}, nil
 }
 
 func (s SuiAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*account.SupportChainsResponse, error) {
@@ -47,8 +55,6 @@ func (s SuiAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*accoun
 }
 
 func (s SuiAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account.ConvertAddressResponse, error) {
-	// Step 1: Convert hex string to byte slice
-	//publicKeyBytes, err := hex.DecodeString(req.PublicKey)
 	publicKey, err := hex.DecodeString(req.PublicKey)
 	if err != nil {
 		log.Error("hex decode err", "err", err)
@@ -57,46 +63,13 @@ func (s SuiAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account
 			Msg:  "req decode error ",
 		}, nil
 	}
-
-	// Step 2: Create tmp array with length PUBLIC_KEY_SIZE + 1
-	tmp := make([]byte, PUBLIC_KEY_SIZE+1)
-	// Step 3: Set the flag for ED25519
-	tmp[0] = SIGNATURE_SCHEME_TO_FLAG["ED25519"]
-	// Step 4: Set the public key bytes starting from index 1
-	copy(tmp[1:], publicKey)
-
-	// Step 5: Hash using Blake2b
-	hash, _ := blake2b.New256([]byte{})
-	_, err = hash.Write(tmp)
-	if err != nil {
-		log.Error("Hash fail", "err", err)
-		return &account.ConvertAddressResponse{
-			Code: common2.ReturnCode_ERROR,
-			Msg:  "blake2b unknow error ",
-		}, nil
-	}
-
-	// Step 6: Take first 20 bytes of the hash (32 bytes to 20 bytes)
-	hashBytes := hash.Sum(nil)
-	addressBytes := hashBytes[:SUI_ADDRESS_LENGTH]
-
-	// Step 7: Convert to hex string and normalize
-	addressHex := hex.EncodeToString(addressBytes)
-
-	address := strings.ToLower(addressHex)
-
-	if strings.HasPrefix(address, "0x") {
-		address = address[2:]
-	}
-
-	// 用 0 填充地址，直到达到 SUI_ADDRESS_LENGTH 的长度
-	for len(address) < SUI_ADDRESS_LENGTH*2 {
-		address = "0" + address
-	}
-
+	newPubkey := []byte{byte(0x00)}
+	newPubkey = append(newPubkey, publicKey...)
+	addrBytes := blake2b.Sum256(newPubkey)
+	address := fmt.Sprintf("0x%s", hex.EncodeToString(addrBytes[:])[:64])
 	return &account.ConvertAddressResponse{
 		Code:    common2.ReturnCode_SUCCESS,
-		Msg:     "生成Address成功",
+		Msg:     "create address success",
 		Address: address,
 	}, nil
 }

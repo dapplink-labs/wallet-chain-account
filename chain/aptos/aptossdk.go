@@ -1,6 +1,7 @@
 package aptos
 
 import (
+	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -10,12 +11,15 @@ import (
 )
 
 type Environment string
+type ChainId uint8
 
 const (
-	Devnet  Environment = "devnet"
-	Testnet Environment = "testnet"
-	Mainnet Environment = "mainnet"
-	Local   Environment = "local"
+	Local          Environment = "local"
+	Devnet         Environment = "devnet"
+	Testnet        Environment = "testnet"
+	TestnetChainId             = 2
+	Mainnet        Environment = "mainnet"
+	MainnetChainId             = 1
 )
 
 func NewAptosClient(networkConfig string) (*aptos.Client, error) {
@@ -101,6 +105,11 @@ func PubKeyHexToPubKey(publicKeyHex string) (*crypto.Ed25519PublicKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf("decode public key failed: %w", err)
 	}
+	if len(pubKeyBytes) != ed25519.PublicKeySize {
+		return nil, fmt.Errorf("invalid public key length: expected %d, got %d",
+			ed25519.PublicKeySize, len(pubKeyBytes))
+	}
+
 	publicKey := &crypto.Ed25519PublicKey{}
 	err = publicKey.FromBytes(pubKeyBytes)
 	if err != nil {
@@ -172,4 +181,25 @@ func AddressToAccountAddress(address string) (aptos.AccountAddress, error) {
 	copy(accountAddress[:], bytes)
 
 	return accountAddress, nil
+}
+
+func CoinAddressToAccountAddress(coinAddress string) (aptos.AccountAddress, error) {
+	coinAddress = strings.TrimPrefix(coinAddress, "0x")
+
+	if len(coinAddress)%2 != 0 {
+		coinAddress = "0" + coinAddress
+	}
+
+	addr, err := hex.DecodeString(coinAddress)
+	if err != nil {
+		return aptos.AccountAddress{}, fmt.Errorf("failed to decode address: %w", err)
+	}
+
+	if len(addr) < 32 {
+		paddedAddr := make([]byte, 32)
+		copy(paddedAddr[32-len(addr):], addr)
+		addr = paddedAddr
+	}
+
+	return aptos.AccountAddress(addr), nil
 }

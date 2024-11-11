@@ -3,38 +3,69 @@ server:
 
 network: mainnet
 
-chains: [Ethereum,Solana,Tron]
+chains: [ Ethereum,Solana,Tron,Aptos,Sui ]
 
 
 wallet_node:
   eth:
-    rpcs:
-      - rpc_url: 'https://rpc.flashbots.net'
-    confirmations: 4
+    rpc_url: 'https://eth-holesky.g.alchemy.com/v2/BvSZ5ZfdIwB-5SDXMz8PfGcbICYQqwrl'
+    rpc_user: ''
+    rpc_pass: ''
     data_api_url: 'https://api.etherscan.io/api?'
     data_api_key: 'HZEZGEPJJDA633N421AYW9NE8JFNZZC7JT'
     data_api_token: ''
-    time_out: 100
+    time_out: 15
+
+  cosmos:
+    rpc_url: 'https://cosmos-rpc.publicnode.com:443'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: 'https://cosmos-rest.publicnode.com/'
+    data_api_key: 'HZEZGEPJJDA633N421AYW9NE8JFNZZC7JT'
+    data_api_token: ''
+    time_out: 15
 
   solana:
-    rpcs:
-      - rpc_url: 'https://go.getblock.io/0b210f6491324f969c052746cce6c0dd'
-    tp_api_url: 'https://public-api.solscan.io'
-    network: "mainnet"
-    NonceAccountAddr: DJyNpXgggw1WGgjTVzFsNjb3fuQZVMqhoakvSBfX9LYx
-    FeeAccountPriKey: 4TMFNY9ntAn3CHzguSAvDNLPRoQTaK3sWbQQXdDXaE6KWRBLufGL6PJdsD2koiEe3gGmMdRK3aAw7sikGNksHJrN
-    solScanApiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdGVkQXQiOjE3MjQwNjIxMzk5MDYsImVtYWlsIjoiemFja2d1by5ndW9AZ21haWwuY29tIiwiYWN0aW9uIjoidG9rZW4tYXBpIiwiYXBpVmVyc2lvbiI6InYxIiwiaWF0IjoxNzI0MDYyMTM5fQ.EaWDC25lyGNx_LqRL5sAYYKLMbq10brnexKnAz9C3UY'
-    solScanBaseUrl: 'https://pro-api.solscan.io'
-    solScanBaseTimeout: 20s
+    rpc_url: 'https://go.getblock.io/0b210f6491324f969c052746cce6c0dd'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: 'https://public-api.solscan.io'
+    data_api_key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdGVkQXQiOjE3MjQwNjIxMzk5MDYsImVtYWlsIjoiemFja2d1by5ndW9AZ21haWwuY29tIiwiYWN0aW9uIjoidG9rZW4tYXBpIiwiYXBpVmVyc2lvbiI6InYxIiwiaWF0IjoxNzI0MDYyMTM5fQ.EaWDC25lyGNx_LqRL5sAYYKLMbq10brnexKnAz9C3UY'
+    data_api_token: ''
+    time_out: 15
 
   tron:
-    rpcs:
-      - rpc_url: 'https://api.trongrid.io'
-        rpc_user: 'TRON-PRO-API-KEY'
-        rpc_pass: 'f7ae3e01-17d1-4a31-92b3-57f99457d915'
-    confirmations: 4
+    rpc_url: 'https://api.trongrid.io'
+    rpc_user: 'TRON-PRO-API-KEY'
+    rpc_pass: 'f7ae3e01-17d1-4a31-92b3-57f99457d915'
     data_api_url: 'https://www.oklink.com'
     data_api_key: '5181d535-b68f-41cf-bbc6-25905e46b6a6'
     data_api_token: ''
-    time_out: 100
+    time_out: 15
 
+  sui:
+    rpc_url: 'https://sui-mainnet-endpoint.blockvision.org'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: ''
+    data_api_key: ''
+    data_api_token: ''
+    time_out: 15
+
+  ton:
+    rpc_url: 'https://ton.org/global.config.json'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: 'https://toncenter.com/api/v3'
+    data_api_key: ''
+    data_api_token: ''
+    time_out: 15
+
+  aptos:
+    rpc_url: 'https://api.mainnet.aptoslabs.com/'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: ''
+    data_api_key: 'aptoslabs_7Gd8hUMMp85_JxF2SXZCDcmeP4tjuuBXjwFwqyY6nTFup'
+    data_api_token: ''
+    time_out: 15
