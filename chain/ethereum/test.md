@@ -201,14 +201,11 @@ grpcurl -plaintext -d '{
 
 - request
 ```
-{
-  "code": "SUCCESS",
-  "msg": "get account response success",
-  "network": "",
-  "account_number": "0",
-  "sequence": "0x4095e",
-  "balance": "2650043761099"
-}
+grpcurl -plaintext -d '{
+  "chain": "Ethereum",
+  "network": "mainnet",
+  "address": "0x922dB1A931327CA2680343eD2d5E4541669701e9"
+}' 127.0.0.1:8189 dapplink.account.WalletAccountService.getAccount
 ```
 - response
 ```
@@ -217,8 +214,8 @@ grpcurl -plaintext -d '{
   "msg": "get account response success",
   "network": "",
   "account_number": "0",
-  "sequence": "0x4095e",
-  "balance": "2650043761099"
+  "sequence": "0x0",
+  "balance": "0"
 }
 ```
 
