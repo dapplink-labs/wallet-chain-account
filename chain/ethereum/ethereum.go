@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/shopspring/decimal"
 	"math/big"
 	"regexp"
 	"strconv"
@@ -116,6 +118,7 @@ func (c *ChainAdaptor) GetBlockHeaderByNumber(req *account.BlockHeaderNumberRequ
 			Msg:  "get latest block header fail",
 		}, nil
 	}
+
 	blockHead := &account.BlockHeader{
 		Hash:             blockInfo.Hash().String(),
 		ParentHash:       blockInfo.ParentHash.String(),
@@ -124,19 +127,19 @@ func (c *ChainAdaptor) GetBlockHeaderByNumber(req *account.BlockHeaderNumberRequ
 		Root:             blockInfo.Root.String(),
 		TxHash:           blockInfo.TxHash.String(),
 		ReceiptHash:      blockInfo.ReceiptHash.String(),
-		ParentBeaconRoot: blockInfo.ParentBeaconRoot.String(),
+		ParentBeaconRoot: common.Hash{}.String(),
 		Difficulty:       blockInfo.Difficulty.String(),
 		Number:           blockInfo.Number.String(),
 		GasLimit:         blockInfo.GasLimit,
 		GasUsed:          blockInfo.GasUsed,
 		Time:             blockInfo.Time,
-		Extra:            string(blockInfo.Extra),
+		Extra:            hex.EncodeToString(blockInfo.Extra),
 		MixDigest:        blockInfo.MixDigest.String(),
 		Nonce:            strconv.FormatUint(blockInfo.Nonce.Uint64(), 10),
 		BaseFee:          blockInfo.BaseFee.String(),
-		WithdrawalsHash:  blockInfo.WithdrawalsHash.String(),
-		BlobGasUsed:      *blockInfo.BlobGasUsed,
-		ExcessBlobGas:    *blockInfo.ExcessBlobGas,
+		WithdrawalsHash:  common.Hash{}.String(),
+		BlobGasUsed:      0,
+		ExcessBlobGas:    0,
 	}
 	return &account.BlockHeaderResponse{
 		Code:        common2.ReturnCode_SUCCESS,
@@ -195,10 +198,13 @@ func (c *ChainAdaptor) GetBlockByNumber(req *account.BlockNumberRequest) (*accou
 	var txListRet []*account.BlockInfoTransactionList
 	for _, v := range block.Transactions {
 		bitlItem := &account.BlockInfoTransactionList{
-			From:   v.From,
-			To:     v.To,
-			Hash:   v.Hash,
-			Amount: v.Value,
+			From:           v.From,
+			To:             v.To,
+			TokenAddress:   v.To,
+			ContractWallet: v.To,
+			Hash:           v.Hash,
+			Height:         block.Height,
+			Amount:         v.Value,
 		}
 		txListRet = append(txListRet, bitlItem)
 	}
@@ -370,12 +376,37 @@ func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashR
 			Msg:  "Get transaction receipt error",
 		}, nil
 	}
-	var from_addrs []*account.Address
-	var to_addrs []*account.Address
-	var value_list []*account.Value
-	from_addrs = append(from_addrs, &account.Address{Address: ""})
-	to_addrs = append(to_addrs, &account.Address{Address: tx.To().Hex()})
-	value_list = append(value_list, &account.Value{Value: tx.Value().String()})
+
+	var beforeToAddress string
+	var beforeTokenAddress string
+	var beforeValue *big.Int
+
+	code, err := c.ethClient.EthGetCode(common.HexToAddress(tx.To().String()))
+	if err != nil {
+		log.Info("Get account code fail", "err", err)
+		return nil, err
+	}
+
+	if code == "contract" {
+		inputData := hexutil.Encode(tx.Data()[:])
+		if len(inputData) >= 138 && inputData[:10] == "0xa9059cbb" {
+			beforeToAddress = "0x" + inputData[34:74]
+			trimHex := strings.TrimLeft(inputData[74:138], "0")
+			rawValue, _ := hexutil.DecodeBig("0x" + trimHex)
+			beforeTokenAddress = tx.To().String()
+			beforeValue = decimal.NewFromBigInt(rawValue, 0).BigInt()
+		}
+	} else {
+		beforeToAddress = tx.To().String()
+		beforeTokenAddress = common.Address{}.String()
+		beforeValue = tx.Value()
+	}
+	var fromAddrs []*account.Address
+	var toAddrs []*account.Address
+	var valueList []*account.Value
+	fromAddrs = append(fromAddrs, &account.Address{Address: ""})
+	toAddrs = append(toAddrs, &account.Address{Address: beforeToAddress})
+	valueList = append(valueList, &account.Value{Value: beforeValue.String()})
 	var txStatus account.TxStatus
 	if receipt.Status == 1 {
 		txStatus = account.TxStatus_Success
@@ -388,14 +419,14 @@ func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashR
 		Tx: &account.TxMessage{
 			Hash:            tx.Hash().Hex(),
 			Index:           uint32(receipt.TransactionIndex),
-			Froms:           from_addrs,
-			Tos:             to_addrs,
-			Values:          value_list,
+			Froms:           fromAddrs,
+			Tos:             toAddrs,
+			Values:          valueList,
 			Fee:             tx.GasFeeCap().String(),
 			Status:          txStatus,
 			Type:            0,
 			Height:          receipt.BlockNumber.String(),
-			ContractAddress: tx.To().String(),
+			ContractAddress: beforeTokenAddress,
 			Data:            hexutils.BytesToHex(tx.Data()),
 		},
 	}, nil

@@ -41,12 +41,12 @@ func NewSuiAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
 		log.Error("Init Sui Client err", "err", err)
 		return nil, err
 	}
-	return SuiAdaptor{
+	return &SuiAdaptor{
 		suiClient: client,
 	}, nil
 }
 
-func (s SuiAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*account.SupportChainsResponse, error) {
+func (s *SuiAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*account.SupportChainsResponse, error) {
 	return &account.SupportChainsResponse{
 		Code:    common2.ReturnCode_SUCCESS,
 		Msg:     "Support this chain",
@@ -54,7 +54,7 @@ func (s SuiAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*accoun
 	}, nil
 }
 
-func (s SuiAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account.ConvertAddressResponse, error) {
+func (s *SuiAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account.ConvertAddressResponse, error) {
 	publicKey, err := hex.DecodeString(req.PublicKey)
 	if err != nil {
 		log.Error("hex decode err", "err", err)
@@ -74,7 +74,7 @@ func (s SuiAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account
 	}, nil
 }
 
-func (s SuiAdaptor) ValidAddress(req *account.ValidAddressRequest) (*account.ValidAddressResponse, error) {
+func (s *SuiAdaptor) ValidAddress(req *account.ValidAddressRequest) (*account.ValidAddressResponse, error) {
 	if len(req.Address) != 66 || !strings.HasPrefix(req.Address, "0x") {
 		return &account.ValidAddressResponse{
 			Code:  common2.ReturnCode_ERROR,
@@ -99,28 +99,28 @@ func (s SuiAdaptor) ValidAddress(req *account.ValidAddressRequest) (*account.Val
 }
 
 // not nessary
-func (s SuiAdaptor) GetBlockByNumber(req *account.BlockNumberRequest) (*account.BlockResponse, error) {
+func (s *SuiAdaptor) GetBlockByNumber(req *account.BlockNumberRequest) (*account.BlockResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
 // not nessary
-func (s SuiAdaptor) GetBlockByHash(req *account.BlockHashRequest) (*account.BlockResponse, error) {
+func (s *SuiAdaptor) GetBlockByHash(req *account.BlockHashRequest) (*account.BlockResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s SuiAdaptor) GetBlockHeaderByHash(req *account.BlockHeaderHashRequest) (*account.BlockHeaderResponse, error) {
+func (s *SuiAdaptor) GetBlockHeaderByHash(req *account.BlockHeaderHashRequest) (*account.BlockHeaderResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s SuiAdaptor) GetBlockHeaderByNumber(req *account.BlockHeaderNumberRequest) (*account.BlockHeaderResponse, error) {
+func (s *SuiAdaptor) GetBlockHeaderByNumber(req *account.BlockHeaderNumberRequest) (*account.BlockHeaderResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s SuiAdaptor) GetAccount(req *account.AccountRequest) (*account.AccountResponse, error) {
+func (s *SuiAdaptor) GetAccount(req *account.AccountRequest) (*account.AccountResponse, error) {
 	balanceRes, err := s.suiClient.GetAccountBalance(SuiCoinType, req.Address)
 	if err != nil {
 		log.Error("get balance err", "err", err)
@@ -147,7 +147,7 @@ func (s SuiAdaptor) GetAccount(req *account.AccountRequest) (*account.AccountRes
 	}, nil
 }
 
-func (s SuiAdaptor) GetFee(req *account.FeeRequest) (*account.FeeResponse, error) {
+func (s *SuiAdaptor) GetFee(req *account.FeeRequest) (*account.FeeResponse, error) {
 	price, err := s.suiClient.GetGasPrice()
 	if err != nil {
 		return &account.FeeResponse{
@@ -165,7 +165,7 @@ func (s SuiAdaptor) GetFee(req *account.FeeRequest) (*account.FeeResponse, error
 
 }
 
-func (s SuiAdaptor) SendTx(req *account.SendTxRequest) (*account.SendTxResponse, error) {
+func (s *SuiAdaptor) SendTx(req *account.SendTxRequest) (*account.SendTxResponse, error) {
 	_, err := s.suiClient.SendTx(req.RawTx)
 	if err != nil {
 		return &account.SendTxResponse{
@@ -180,7 +180,7 @@ func (s SuiAdaptor) SendTx(req *account.SendTxRequest) (*account.SendTxResponse,
 	}, nil
 }
 
-func (s SuiAdaptor) GetTxByAddress(req *account.TxAddressRequest) (*account.TxAddressResponse, error) {
+func (s *SuiAdaptor) GetTxByAddress(req *account.TxAddressRequest) (*account.TxAddressResponse, error) {
 	cursor := req.Cursor
 	txList, err := s.suiClient.GetTxListByAddress(req.Address, cursor, req.Pagesize)
 	if err != nil {
@@ -202,7 +202,7 @@ func (s SuiAdaptor) GetTxByAddress(req *account.TxAddressRequest) (*account.TxAd
 	}, nil
 }
 
-func (s SuiAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashResponse, error) {
+func (s *SuiAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashResponse, error) {
 	txDetail, err := s.suiClient.GetTxDetailByDigest(req.Hash)
 	if err != nil {
 		return &account.TxHashResponse{
@@ -251,32 +251,32 @@ func (a *SuiAdaptor) getTxMessage(suiTransaction models.SuiTransactionBlockRespo
 	}, nil
 }
 
-func (s SuiAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*account.BlockByRangeResponse, error) {
+func (s *SuiAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*account.BlockByRangeResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s SuiAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
+func (s *SuiAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s SuiAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequest) (*account.SignedTransactionResponse, error) {
+func (s *SuiAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequest) (*account.SignedTransactionResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s SuiAdaptor) DecodeTransaction(req *account.DecodeTransactionRequest) (*account.DecodeTransactionResponse, error) {
+func (s *SuiAdaptor) DecodeTransaction(req *account.DecodeTransactionRequest) (*account.DecodeTransactionResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s SuiAdaptor) VerifySignedTransaction(req *account.VerifyTransactionRequest) (*account.VerifyTransactionResponse, error) {
+func (s *SuiAdaptor) VerifySignedTransaction(req *account.VerifyTransactionRequest) (*account.VerifyTransactionResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s SuiAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.ExtraDataResponse, error) {
+func (s *SuiAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.ExtraDataResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }

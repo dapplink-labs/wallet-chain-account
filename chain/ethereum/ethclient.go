@@ -64,6 +64,8 @@ type EthClient interface {
 	SuggestGasPrice() (*big.Int, error)
 	SuggestGasTipCap() (*big.Int, error)
 
+	EthGetCode(common.Address) (string, error)
+
 	Close()
 }
 
@@ -345,6 +347,22 @@ func (c *clnt) StorageHash(address common.Address, blockNumber *big.Int) (common
 	}
 
 	return proof.StorageHash, nil
+}
+
+func (c *clnt) EthGetCode(account common.Address) (string, error) {
+	ctxwt, cancel := context.WithTimeout(context.Background(), defaultRequestTimeout)
+	defer cancel()
+
+	var result hexutil.Bytes
+	err := c.rpc.CallContext(ctxwt, &result, "eth_getCode", account)
+	if err != nil {
+		return "", err
+	}
+	if result.String() == "0x" {
+		return "eoa", nil
+	} else {
+		return "contract", nil
+	}
 }
 
 func (c *clnt) Close() {

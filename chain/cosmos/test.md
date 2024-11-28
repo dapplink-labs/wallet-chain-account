@@ -17,11 +17,6 @@ grpcurl -plaintext -d '{
 }
 ```
 
-
-
-
-
-
 ## 3.valid address
 
 - request

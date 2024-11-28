@@ -72,7 +72,7 @@ func TestChainAdaptor_ConvertAddress(t *testing.T) {
 		validPublicKey        = "0x032a5b5d8a16bcdf70ab23e9e717693672b969366c0a61b7fbddd723c986bf2925"
 		validPublicKeyAddress = "0x3a8eef8a52bc873f5416e835e7ec7da6dd978e5f6a8a12d278df0c42ef01d131"
 		emptyKeyAddress       = "0xa7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a"
-		invalidPublicKey      = "invalid_hex"
+		invalidPublicKey      = "0x06b331be57280b9050ea43fbcaf8f0e6f194987c9d9b00a42c1b5367742a2d05"
 	)
 
 	adaptor := &ChainAdaptor{}

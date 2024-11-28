@@ -26,7 +26,7 @@ wallet_node:
     time_out: 15
 
   solana:
-    rpc_url: 'https://go.getblock.io/0b210f6491324f969c052746cce6c0dd'
+    rpc_url: 'https://go.getblock.io/70f479b9ed834b5f96a26934e0492b36'
     rpc_user: ''
     rpc_pass: ''
     data_api_url: 'https://public-api.solscan.io'

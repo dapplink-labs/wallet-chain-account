@@ -2,7 +2,6 @@ package chaindispatcher
 
 import (
 	"context"
-
 	"runtime/debug"
 	"strings"
 

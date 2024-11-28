@@ -8,12 +8,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/aptos-labs/aptos-go-sdk"
 	"github.com/aptos-labs/aptos-go-sdk/bcs"
 	"github.com/aptos-labs/aptos-go-sdk/crypto"
 	"github.com/ethereum/go-ethereum/log"
-	"strconv"
-	"strings"
 
 	"github.com/dapplink-labs/wallet-chain-account/chain"
 	"github.com/dapplink-labs/wallet-chain-account/config"
@@ -87,6 +88,12 @@ func (c *ChainAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*acco
 	}
 
 	pubKeyHex := req.PublicKey
+	if ok, msg := validateAptosPublicKey(req.PublicKey); !ok {
+		err := fmt.Errorf("ConvertAddress validatePublicKey fail, err msg = %s", msg)
+		log.Error("err", err)
+		response.Msg = err.Error()
+		return response, err
+	}
 	accountAddress, err := PubKeyHexToAccountAddress(pubKeyHex)
 	if err != nil {
 		err := fmt.Errorf("ConvertAddress PubKeyHexToAccountAddress failed: %w", err)
@@ -169,7 +176,6 @@ func (c *ChainAdaptor) GetBlockByNumber(req *account.BlockNumberRequest) (*accou
 		BaseFee:      "",
 		Transactions: nil,
 	}
-
 	if ok, msg := validateChainAndNetwork(req.Chain, ""); !ok {
 		err := fmt.Errorf("GetBlockByNumber validateChainAndNetwork default failed: %s", msg)
 		log.Error("err", err)
@@ -986,4 +992,25 @@ func serializePayload(payload Payload) string {
 		return ""
 	}
 	return string(data)
+}
+
+func validateAptosPublicKey(pubKey string) (bool, string) {
+	if pubKey == "" {
+		return false, "public key cannot be empty"
+	}
+
+	if !strings.HasPrefix(pubKey, "0x") {
+		return false, "public key must start with 0x"
+	}
+
+	pubKeyWithoutPrefix := strings.TrimPrefix(pubKey, "0x")
+	if len(pubKeyWithoutPrefix) != 64 { // Aptos 使用 32 字节的公钥，所以是 64 个十六进制字符
+		return false, "invalid public key length, expected 32 bytes (64 hex chars)"
+	}
+
+	if _, err := hex.DecodeString(pubKeyWithoutPrefix); err != nil {
+		return false, "invalid public key format: must be hex string"
+	}
+
+	return true, ""
 }
