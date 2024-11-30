@@ -70,3 +70,13 @@ wallet_node:
     data_api_key: 'aptoslabs_7Gd8hUMMp85_JxF2SXZCDcmeP4tjuuBXjwFwqyY6nTFup'
     data_api_token: ''
     time_out: 15
+
+  icp:
+    rpc_url: 'http://localhost:8081'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: ''
+    data_api_key: ''
+    data_api_token: ''
+    time_out: 15
+
