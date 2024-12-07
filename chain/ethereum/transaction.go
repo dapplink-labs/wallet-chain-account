@@ -62,18 +62,18 @@ func CreateEip1559UnSignTx(txData *types.DynamicFeeTx, chainId *big.Int) (string
 	return txHash.String(), nil
 }
 
-func CreateEip1559SignedTx(txData *types.DynamicFeeTx, signature []byte, chainId *big.Int) (string, string, error) {
+func CreateEip1559SignedTx(txData *types.DynamicFeeTx, signature []byte, chainId *big.Int) (types.Signer, *types.Transaction, string, string, error) {
 	tx := types.NewTx(txData)
 	signer := types.LatestSignerForChainID(chainId)
 	signedTx, err := tx.WithSignature(signer, signature)
 	if err != nil {
-		return "", "", errors.New("tx with signature fail")
+		return nil, nil, "", "", errors.New("tx with signature fail")
 	}
 	signedTxData, err := rlp.EncodeToBytes(signedTx)
 	if err != nil {
-		return "", "", errors.New("encode tx to byte fail")
+		return nil, nil, "", "", errors.New("encode tx to byte fail")
 	}
-	return "0x" + hex.EncodeToString(signedTxData)[4:], signedTx.Hash().String(), nil
+	return signer, signedTx, "0x" + hex.EncodeToString(signedTxData)[4:], signedTx.Hash().String(), nil
 }
 
 func CreateLegacySignedTx(txData *types.LegacyTx, signature []byte, chainId *big.Int) (string, string, error) {

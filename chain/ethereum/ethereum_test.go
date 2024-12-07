@@ -187,5 +187,7 @@ func TestChainAdaptor_GetFee(t *testing.T) {
 		return
 	}
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
-	fmt.Println(resp)
+
+	respJson, _ := json.Marshal(resp)
+	t.Logf("响应: %s", respJson)
 }

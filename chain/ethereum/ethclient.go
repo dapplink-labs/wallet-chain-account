@@ -66,6 +66,8 @@ type EthClient interface {
 
 	EthGetCode(common.Address) (string, error)
 
+	GetBalance(address common.Address) (*big.Int, error)
+
 	Close()
 }
 
@@ -364,6 +366,20 @@ func (c *clnt) EthGetCode(account common.Address) (string, error) {
 	} else {
 		return "contract", nil
 	}
+}
+
+func (c *clnt) GetBalance(address common.Address) (*big.Int, error) {
+	ctxwt, cancel := context.WithTimeout(context.Background(), defaultRequestTimeout)
+	defer cancel()
+
+	var result hexutil.Big
+	err := c.rpc.CallContext(ctxwt, &result, "eth_getBalance", address, "latest")
+	if err != nil {
+		return nil, fmt.Errorf("get balance failed: %w", err)
+	}
+
+	balance := (*big.Int)(&result)
+	return balance, nil
 }
 
 func (c *clnt) Close() {

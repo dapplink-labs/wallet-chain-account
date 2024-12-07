@@ -485,120 +485,86 @@ func (c *ChainAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*accou
 }
 
 func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
-	jsonBytes, err := base64.StdEncoding.DecodeString(req.Base64Tx)
+	response := &account.UnSignTransactionResponse{
+		Code: common2.ReturnCode_ERROR,
+	}
+
+	dFeeTx, _, err := c.buildDynamicFeeTx(req.Base64Tx)
 	if err != nil {
-		log.Error("decode string fail", "err", err)
 		return nil, err
 	}
-	var data TxStructure
-	if err := json.Unmarshal(jsonBytes, &data); err != nil {
-		log.Error("parse json fail", "err", err)
-		return nil, err
-	}
-	var amount *big.Int
-	chainID := new(big.Int)
-	gasTipCap := new(big.Int)
-	maxFeePerGas := new(big.Int)
-	valueData := new(big.Int)
-	chainID.SetString(data.ChainId, 10)
-	gasTipCap.SetString(data.GasTipCap, 10)
-	maxFeePerGas.SetString(data.GasFeeCap, 10)
-	valueData.SetString(data.Value, 10)
-	toAddress := common.HexToAddress(data.ToAddress)
-	tokenAddress := common.HexToAddress(data.ContractAddress)
-	var buildData []byte
-	if data.ContractAddress != "0x00" {
-		buildData = BuildErc20Data(toAddress, valueData)
-		toAddress = tokenAddress
-		amount = big.NewInt(0)
-	} else {
-		toAddress = toAddress
-		amount = valueData
-	}
-	dFeeTx := &types.DynamicFeeTx{
-		ChainID:   chainID,
-		Nonce:     data.Nonce,
-		GasTipCap: gasTipCap,
-		GasFeeCap: maxFeePerGas,
-		Gas:       data.Gas,
-		To:        &toAddress,
-		Value:     amount,
-		Data:      buildData,
-	}
-	log.Info("ethereum CreateUnSignTransaction", util.ToJSONString(dFeeTx))
-	rawTx, err := CreateEip1559UnSignTx(dFeeTx, chainID)
+
+	log.Info("ethereum CreateUnSignTransaction", "dFeeTx", util.ToJSONString(dFeeTx))
+
+	// Create unsigned transaction
+	rawTx, err := CreateEip1559UnSignTx(dFeeTx, dFeeTx.ChainID)
 	if err != nil {
 		log.Error("create un sign tx fail", "err", err)
-		return &account.UnSignTransactionResponse{
-			Code:     common2.ReturnCode_ERROR,
-			Msg:      "create un sign tx fail",
-			UnSignTx: "",
-		}, err
+		response.Msg = "get un sign tx fail"
+		return response, nil
 	}
-	return &account.UnSignTransactionResponse{
-		Code:     common2.ReturnCode_SUCCESS,
-		Msg:      "create un sign tx success",
-		UnSignTx: rawTx,
-	}, nil
+
+	log.Info("ethereum CreateUnSignTransaction", "rawTx", rawTx)
+	response.Code = common2.ReturnCode_SUCCESS
+	response.Msg = "create un sign tx success"
+	response.UnSignTx = rawTx
+	return response, nil
 }
 
 func (c *ChainAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequest) (*account.SignedTransactionResponse, error) {
-	jsonBytes, err := base64.StdEncoding.DecodeString(req.Base64Tx)
+	response := &account.SignedTransactionResponse{
+		Code: common2.ReturnCode_ERROR,
+	}
+
+	dFeeTx, dynamicFeeTx, err := c.buildDynamicFeeTx(req.Base64Tx)
 	if err != nil {
-		log.Error("decode string fail", "err", err)
+		log.Error("buildDynamicFeeTx failed", "err", err)
 		return nil, err
 	}
-	var data TxStructure
-	if err := json.Unmarshal(jsonBytes, &data); err != nil {
-		log.Error("parse json fail", "err", err)
-		return nil, err
-	}
-	var amount *big.Int
-	chainID := new(big.Int)
-	gasTipCap := new(big.Int)
-	maxFeePerGas := new(big.Int)
-	valueData := new(big.Int)
-	chainID.SetString(data.ChainId, 10)
-	gasTipCap.SetString(data.GasTipCap, 10)
-	maxFeePerGas.SetString(data.GasFeeCap, 10)
-	valueData.SetString(data.Value, 10)
-	toAddress := common.HexToAddress(data.ToAddress)
-	tokenAddress := common.HexToAddress(data.ContractAddress)
-	var buildData []byte
-	if data.ContractAddress != "0x00" {
-		buildData = BuildErc20Data(toAddress, valueData)
-		toAddress = tokenAddress
-		amount = big.NewInt(0)
-	} else {
-		toAddress = toAddress
-		amount = valueData
-	}
-	dFeeTx := &types.DynamicFeeTx{
-		ChainID:   chainID,
-		Nonce:     data.Nonce,
-		GasTipCap: gasTipCap,
-		GasFeeCap: maxFeePerGas,
-		Gas:       data.Gas,
-		To:        &toAddress,
-		Value:     amount,
-		Data:      buildData,
-	}
-	log.Info("ethereum BuildSignedTransaction", util.ToJSONString(dFeeTx))
-	sigByte, _ := hex.DecodeString(req.Signature)
-	rawTx, txHash, err := CreateEip1559SignedTx(dFeeTx, sigByte, chainID)
+
+	log.Info("ethereum BuildSignedTransaction", "dFeeTx", util.ToJSONString(dFeeTx))
+	log.Info("ethereum BuildSignedTransaction", "dynamicFeeTx", util.ToJSONString(dynamicFeeTx))
+	log.Info("ethereum BuildSignedTransaction", "req.Signature", req.Signature)
+
+	// Decode signature and create signed transaction
+	inputSignatureByteList, err := hex.DecodeString(req.Signature)
 	if err != nil {
-		log.Error("create un sign tx fail", "err", err)
-		return &account.SignedTransactionResponse{
-			Code:     common2.ReturnCode_ERROR,
-			Msg:      "create un sign tx fail",
-			SignedTx: "",
-		}, err
+		log.Error("decode signature failed", "err", err)
+		return nil, fmt.Errorf("invalid signature: %w", err)
 	}
-	return &account.SignedTransactionResponse{
-		Code:     common2.ReturnCode_SUCCESS,
-		Msg:      txHash,
-		SignedTx: rawTx,
-	}, nil
+
+	signer, signedTx, rawTx, txHash, err := CreateEip1559SignedTx(dFeeTx, inputSignatureByteList, dFeeTx.ChainID)
+	if err != nil {
+		log.Error("create signed tx fail", "err", err)
+		return nil, fmt.Errorf("create signed tx fail: %w", err)
+	}
+
+	log.Info("ethereum BuildSignedTransaction", "rawTx", rawTx)
+
+	// Verify sender
+	sender, err := types.Sender(signer, signedTx)
+	if err != nil {
+		log.Error("recover sender failed", "err", err)
+		return nil, fmt.Errorf("recover sender failed: %w", err)
+	}
+
+	if sender.Hex() != dynamicFeeTx.FromAddress {
+		log.Error("sender mismatch",
+			"expected", dynamicFeeTx.FromAddress,
+			"got", sender.Hex(),
+		)
+		return nil, fmt.Errorf("sender address mismatch: expected %s, got %s",
+			dynamicFeeTx.FromAddress,
+			sender.Hex(),
+		)
+	}
+
+	log.Info("ethereum BuildSignedTransaction", "sender", sender.Hex())
+
+	response.Code = common2.ReturnCode_SUCCESS
+	response.Msg = txHash
+	response.SignedTx = rawTx
+	return response, nil
 }
 
 func (c *ChainAdaptor) DecodeTransaction(req *account.DecodeTransactionRequest) (*account.DecodeTransactionResponse, error) {
@@ -623,4 +589,86 @@ func (c *ChainAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.Ext
 		Msg:   "get extra data success",
 		Value: "not data",
 	}, nil
+}
+
+// buildDynamicFeeTx 构建动态费用交易的公共方法
+func (c *ChainAdaptor) buildDynamicFeeTx(base64Tx string) (*types.DynamicFeeTx, *Eip1559DynamicFeeTx, error) {
+	// 1. Decode base64 string
+	txReqJsonByte, err := base64.StdEncoding.DecodeString(base64Tx)
+	if err != nil {
+		log.Error("decode string fail", "err", err)
+		return nil, nil, err
+	}
+
+	// 2. Unmarshal JSON to struct
+	var dynamicFeeTx Eip1559DynamicFeeTx
+	if err := json.Unmarshal(txReqJsonByte, &dynamicFeeTx); err != nil {
+		log.Error("parse json fail", "err", err)
+		return nil, nil, err
+	}
+
+	// 3. Convert string values to big.Int
+	chainID := new(big.Int)
+	maxPriorityFeePerGas := new(big.Int)
+	maxFeePerGas := new(big.Int)
+	amount := new(big.Int)
+
+	if _, ok := chainID.SetString(dynamicFeeTx.ChainId, 10); !ok {
+		return nil, nil, fmt.Errorf("invalid chain ID: %s", dynamicFeeTx.ChainId)
+	}
+	if _, ok := maxPriorityFeePerGas.SetString(dynamicFeeTx.MaxPriorityFeePerGas, 10); !ok {
+		return nil, nil, fmt.Errorf("invalid max priority fee: %s", dynamicFeeTx.MaxPriorityFeePerGas)
+	}
+	if _, ok := maxFeePerGas.SetString(dynamicFeeTx.MaxFeePerGas, 10); !ok {
+		return nil, nil, fmt.Errorf("invalid max fee: %s", dynamicFeeTx.MaxFeePerGas)
+	}
+	if _, ok := amount.SetString(dynamicFeeTx.Amount, 10); !ok {
+		return nil, nil, fmt.Errorf("invalid amount: %s", dynamicFeeTx.Amount)
+	}
+
+	// 4. Handle addresses and data
+	toAddress := common.HexToAddress(dynamicFeeTx.ToAddress)
+	var finalToAddress common.Address
+	var finalAmount *big.Int
+	var buildData []byte
+	log.Info("contract address check",
+		"contractAddress", dynamicFeeTx.ContractAddress,
+		"isEthTransfer", isEthTransfer(&dynamicFeeTx),
+	)
+
+	// 5. Handle contract interaction vs direct transfer
+	if isEthTransfer(&dynamicFeeTx) {
+		finalToAddress = toAddress
+		finalAmount = amount
+	} else {
+		contractAddress := common.HexToAddress(dynamicFeeTx.ContractAddress)
+		buildData = BuildErc20Data(toAddress, amount)
+		finalToAddress = contractAddress
+		finalAmount = big.NewInt(0)
+	}
+
+	// 6. Create dynamic fee transaction
+	dFeeTx := &types.DynamicFeeTx{
+		ChainID:   chainID,
+		Nonce:     dynamicFeeTx.Nonce,
+		GasTipCap: maxPriorityFeePerGas,
+		GasFeeCap: maxFeePerGas,
+		Gas:       dynamicFeeTx.GasLimit,
+		To:        &finalToAddress,
+		Value:     finalAmount,
+		Data:      buildData,
+	}
+
+	return dFeeTx, &dynamicFeeTx, nil
+}
+
+// 判断是否为 ETH 转账
+func isEthTransfer(tx *Eip1559DynamicFeeTx) bool {
+	// 检查合约地址是否为空或零地址
+	if tx.ContractAddress == "" ||
+		tx.ContractAddress == "0x0000000000000000000000000000000000000000" ||
+		tx.ContractAddress == "0x00" {
+		return true
+	}
+	return false
 }

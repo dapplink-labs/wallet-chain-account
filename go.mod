@@ -167,6 +167,7 @@ require (
 	github.com/cosmos/btcutil v1.0.5
 	github.com/gagliardetto/solana-go v1.11.0
 	github.com/shopspring/decimal v1.3.1
+	github.com/test-go/testify v1.1.4
 )
 
 require (

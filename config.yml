@@ -11,8 +11,8 @@ wallet_node:
     rpc_url: 'https://eth-holesky.g.alchemy.com/v2/BvSZ5ZfdIwB-5SDXMz8PfGcbICYQqwrl'
     rpc_user: ''
     rpc_pass: ''
-    data_api_url: 'https://api.etherscan.io/api?'
-#    data_api_url: 'https://api-holesky.etherscan.io/api?'
+#    data_api_url: 'https://api.etherscan.io/api?'
+    data_api_url: 'https://api-holesky.etherscan.io/api?'
     data_api_key: 'HZEZGEPJJDA633N421AYW9NE8JFNZZC7JT'
     data_api_token: ''
     time_out: 15
