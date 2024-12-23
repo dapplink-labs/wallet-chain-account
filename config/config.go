@@ -57,11 +57,13 @@ func New(path string) (*Config, error) {
 
 	data, err := os.ReadFile(path)
 	if err != nil {
+		log.Error("read config file error", "err", err)
 		return nil, err
 	}
 
 	err = yaml.Unmarshal(data, config)
 	if err != nil {
+		log.Error("unmarshal config file error", "err", err)
 		return nil, err
 	}
 	return config, nil
