@@ -40,38 +40,34 @@ type RpcBlock struct {
 	BaseFee      string            `json:"baseFeePerGas"`
 }
 
+type clnt struct {
+	rpc RPC
+}
+
+type Logs struct {
+	Logs          []types.Log
+	ToBlockHeader *types.Header
+}
+
 type EthClient interface {
 	BlockHeaderByNumber(*big.Int) (*types.Header, error)
 	BlockHeaderByHash(common.Hash) (*types.Header, error)
 	BlockHeadersByRange(*big.Int, *big.Int, uint) ([]types.Header, error)
 	BlockByNumber(*big.Int) (*RpcBlock, error)
 	BlockByHash(common.Hash) (*RpcBlock, error)
-
 	LatestSafeBlockHeader() (*types.Header, error)
 	LatestFinalizedBlockHeader() (*types.Header, error)
-
-	TxByHash(common.Hash) (*types.Transaction, error)
-	TxReceiptByHash(common.Hash) (*types.Receipt, error)
-
-	StorageHash(common.Address, *big.Int) (common.Hash, error)
-	FilterLogs(filterQuery ethereum.FilterQuery, chainId uint) (Logs, error)
-
 	TxCountByAddress(common.Address) (hexutil.Uint64, error)
-
-	SendRawTransaction(rawTx string) (*common.Hash, error)
-
 	SuggestGasPrice() (*big.Int, error)
 	SuggestGasTipCap() (*big.Int, error)
-
+	SendRawTransaction(rawTx string) (*common.Hash, error)
+	TxByHash(common.Hash) (*types.Transaction, error)
+	TxReceiptByHash(common.Hash) (*types.Receipt, error)
+	StorageHash(common.Address, *big.Int) (common.Hash, error)
 	EthGetCode(common.Address) (string, error)
-
 	GetBalance(address common.Address) (*big.Int, error)
-
+	FilterLogs(filterQuery ethereum.FilterQuery, chainId uint) (Logs, error)
 	Close()
-}
-
-type clnt struct {
-	rpc RPC
 }
 
 func DialEthClient(ctx context.Context, rpcUrl string) (EthClient, error) {
@@ -381,15 +377,6 @@ func (c *clnt) GetBalance(address common.Address) (*big.Int, error) {
 	return balance, nil
 }
 
-func (c *clnt) Close() {
-	c.rpc.Close()
-}
-
-type Logs struct {
-	Logs          []types.Log
-	ToBlockHeader *types.Header
-}
-
 func (c *clnt) FilterLogs(query ethereum.FilterQuery, chainId uint) (Logs, error) {
 	arg, err := toFilterArg(query)
 	if err != nil {
@@ -423,6 +410,10 @@ func (c *clnt) FilterLogs(query ethereum.FilterQuery, chainId uint) (Logs, error
 		return Logs{}, fmt.Errorf("unable to query logs: %w", batchElems[1].Error)
 	}
 	return Logs{Logs: logs, ToBlockHeader: &header}, nil
+}
+
+func (c *clnt) Close() {
+	c.rpc.Close()
 }
 
 type RPC interface {
