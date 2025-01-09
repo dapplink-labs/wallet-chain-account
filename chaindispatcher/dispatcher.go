@@ -2,6 +2,7 @@ package chaindispatcher
 
 import (
 	"context"
+	"github.com/dapplink-labs/wallet-chain-account/chain/polygon"
 	"runtime/debug"
 	"strings"
 
@@ -48,6 +49,7 @@ func New(conf *config.Config) (*ChainDispatcher, error) {
 		aptos.ChainName:    aptos.NewChainAdaptor,
 		sui.ChainName:      sui.NewSuiAdaptor,
 		ton.ChainName:      ton.NewChainAdaptor,
+		polygon.ChainName:  polygon.NewChainAdaptor,
 	}
 
 	supportedChains := []string{
@@ -58,6 +60,7 @@ func New(conf *config.Config) (*ChainDispatcher, error) {
 		sui.ChainName,
 		ton.ChainName,
 		aptos.ChainName,
+		polygon.ChainName,
 	}
 
 	for _, c := range conf.Chains {
