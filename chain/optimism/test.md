@@ -1,0 +1,58 @@
+## 1.create unSign transaction
+
+- request
+```
+grpcurl -plaintext -d '{
+  "base64Tx": "eyJjaGFpbl9pZCI6IjEwIiwibm9uY2UiOjUsImZyb21fYWRkcmVzcyI6IjB4NDc0MGQ3ZUUxYkQ0NTc2YUQ5NjJmMjgwNmIxMTI5OThDYzNCNzJGYyIsInRvX2FkZHJlc3MiOiIweDgyMThhMEY0N0Y0YzBkRTBjMTc1NGY1MDg3NDcwN2NkNmU3YjJlNWUiLCJnYXNfbGltaXQiOjIxMDAwLCJtYXhfZmVlX3Blcl9nYXMiOiIyNjAwMDAwMDAwMCIsIm1heF9wcmlvcml0eV9mZWVfcGVyX2dhcyI6IjIwNTIwMDAwMDAwIiwiYW1vdW50IjoiOTAwMDAwMDAwMDAwMDAwMDAwMCIsImNvbnRyYWN0X2FkZHJlc3MiOiIweGIxMmMxM2U2NmFkZTFmNzJmNzE4MzRmMmZjNTA4MmRiOGMwOTEzNTgifQ==",
+  "chain": "Optimism"
+}' 127.0.0.1:8189 dapplink.account.WalletAccountService.createUnSignTransaction
+```
+- response
+```
+{
+  "code": "SUCCESS",
+  "msg": "create unsign transaction success",
+  "un_sign_tx": "0xc1c234195ac9871215cd960190893c4b361699b207d4d546ad8d9de175633e08"
+}
+
+```
+
+
+## 2.build signed transaction
+
+- request
+```
+grpcurl -plaintext -d '{
+  "chain": "Optimism",
+  "base64Tx": "eyJjaGFpbl9pZCI6IjEwIiwibm9uY2UiOjUsImZyb21fYWRkcmVzcyI6IjB4NDc0MGQ3ZUUxYkQ0NTc2YUQ5NjJmMjgwNmIxMTI5OThDYzNCNzJGYyIsInRvX2FkZHJlc3MiOiIweDgyMThhMEY0N0Y0YzBkRTBjMTc1NGY1MDg3NDcwN2NkNmU3YjJlNWUiLCJnYXNfbGltaXQiOjIxMDAwLCJtYXhfZmVlX3Blcl9nYXMiOiIyNjAwMDAwMDAwMCIsIm1heF9wcmlvcml0eV9mZWVfcGVyX2dhcyI6IjIwNTIwMDAwMDAwIiwiYW1vdW50IjoiOTAwMDAwMDAwMDAwMDAwMDAwMCIsImNvbnRyYWN0X2FkZHJlc3MiOiIweGIxMmMxM2U2NmFkZTFmNzJmNzE4MzRmMmZjNTA4MmRiOGMwOTEzNTgiLCJzaWduYXR1cmUiOiI0YjJhN2ZjMjM5MzFkYTJjYWFlODNiYTgyYjViOTViMjY0NGVjMzE3MDc4ZjEwNWQxMDk4YjdjZWRlNThiYzVkMjU2NjBlZjBhYWVmMWYxMjEwMjA1MjkwMDA3Y2I4MWFiYmVhMDFiZWI5YWFkZmIyZmRkNDE1MGVkMWFmZjAzOTAwIn0="
+}' 127.0.0.1:8189 dapplink.account.WalletAccountService.buildSignedTransaction
+```
+- response
+```
+{
+  "code": "SUCCESS",
+  "msg": "0xa1214d8d892966da2282167e1693db707274811c0d947304af6f31293b0817d9",
+  "signed_tx": "0x02f8b10a058504c7165a0085060db8840082520894b12c13e66ade1f72f71834f2fc5082db8c09135880b844a9059cbb0000000000000000000000008218a0f47f4c0de0c1754f50874707cd6e7b2e5e0000000000000000000000000000000000000000000000007ce66c50e2840000c080a04b2a7fc23931da2caae83ba82b5b95b2644ec317078f105d1098b7cede58bc5da025660ef0aaef1f1210205290007cb81abbea01beb9aadfb2fdd4150ed1aff039"
+}
+
+```
+
+## 2.send tx
+
+- request
+```
+grpcurl -plaintext -d '{
+  "chain": "Optimism",
+  "rawTx": "0x02f8b10a058504c7165a0085060db8840082520894b12c13e66ade1f72f71834f2fc5082db8c09135880b844a9059cbb0000000000000000000000008218a0f47f4c0de0c1754f50874707cd6e7b2e5e0000000000000000000000000000000000000000000000007ce66c50e2840000c080a04b2a7fc23931da2caae83ba82b5b95b2644ec317078f105d1098b7cede58bc5da025660ef0aaef1f1210205290007cb81abbea01beb9aadfb2fdd4150ed1aff039"
+}' 127.0.0.1:8189 dapplink.account.WalletAccountService.SendTx
+```
+- response
+```
+{
+  "code": "SUCCESS",
+  "msg": "",
+  "txHash": "0xbd059a5975ffdd5547b56811453afdbace10c36861a71a4256dc3a004d25977d"
+}
+
+```
+

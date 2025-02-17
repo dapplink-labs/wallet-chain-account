@@ -3,7 +3,7 @@ server:
 
 network: mainnet
 
-chains: [Ethereum, Solana, Tron, Aptos, Sui, Polygon]
+chains: [Ethereum, Solana, Tron, Aptos, Sui, Arbitrum,BscChain,Mantle ,Optimism,Polygon]
 
 wallet_node:
   eth:
@@ -69,12 +69,46 @@ wallet_node:
     data_api_token: ''
     time_out: 15
 
+  arbi:
+    rpc_url: 'https://arb-mainnet.g.alchemy.com/v2/tQ6olBJhhJY0_v04kavsliE758vz_qE_'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: 'https://api.arbiscan.io/api?'
+    data_api_key: 'RN4TWQ841NG1BW4JZVS16DGIJVUSEK2SJI'
+    data_api_token: ''
+    time_out: 15
+
+  op:
+    rpc_url: 'https://opt-mainnet.g.alchemy.com/v2/tQ6olBJhhJY0_v04kavsliE758vz_qE_'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: 'https://api-optimistic.etherscan.io/api?'
+    data_api_key: 'YCFBNATTG2DMWJDF78XW1PCFKE97MWZ384'
+    data_api_token: ''
+    time_out: 60
+
   polygon:
     rpc_url: 'https://polygon-mainnet.g.alchemy.com/v2/6n_grnrgB6CFk85lW1ex_bJyakWs2uw1'
     rpc_user: ''
     rpc_pass: ''
     data_api_url: 'https://api.polygonscan.com/api?'
     data_api_key: 'MSZJ952GZXKTJITPXYS1YKC33TBNWHDSIX'
+    data_api_token: ''
+    time_out: 15
+  bsc:
+    rpc_url: 'https://bnb-mainnet.g.alchemy.com/v2/tQ6olBJhhJY0_v04kavsliE758vz_qE_'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: 'https://api.bscscan.com/api?'
+    data_api_key: '2TNI2395PV8XNXHSESC23XUP688NN3G3NW'
+    data_api_token: ''
+    time_out: 15
+  mantle:
+    rpc_url: 'https://mantle-mainnet.g.alchemy.com/v2/tQ6olBJhhJY0_v04kavsliE758vz_qE__'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: 'https://api.mantlescan.xyz/api?'
+    data_api_key: '52G7PCPGGZGT9BBM992CQUZID5RB54NUI8'
     data_api_token: ''
     time_out: 15
 
