@@ -356,7 +356,7 @@ func (c *clnt) EthGetCode(account common.Address) (string, error) {
 	defer cancel()
 
 	var result hexutil.Bytes
-	err := c.rpc.CallContext(ctxwt, &result, "eth_getCode", account)
+	err := c.rpc.CallContext(ctxwt, &result, "eth_getCode", account, "latest")
 	if err != nil {
 		return "", err
 	}

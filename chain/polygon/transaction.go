@@ -17,7 +17,7 @@ func BuildErc20Data(toAddress common.Address, amount *big.Int) []byte {
 
 	transferFnSignature := []byte("transfer(address,uint256)")
 	hash := crypto.Keccak256Hash(transferFnSignature)
-	methodId := hash[:5]
+	methodId := hash[:4]
 	dataAddress := common.LeftPadBytes(toAddress.Bytes(), 32)
 	dataAmount := common.LeftPadBytes(amount.Bytes(), 32)
 
