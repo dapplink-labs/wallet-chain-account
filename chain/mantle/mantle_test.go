@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"github.com/dapplink-labs/wallet-chain-account/chain"
+	"github.com/dapplink-labs/wallet-chain-account/chain/evmbase"
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -297,7 +298,7 @@ func createTestBase64Tx(signature string, limit uint64, maxGas string, priorityG
 		priorityGas = "20520000000"
 	}
 
-	testTx := Eip1559DynamicFeeTx{
+	testTx := evmbase.Eip1559DynamicFeeTx{
 		Nonce:                1,
 		FromAddress:          "0xDDA22000e1bCC0c70C8b1947CE7074df1DC5B80B",
 		ToAddress:            "0x8218a0F47F4c0dE0c1754f50874707cd6e7b2e5e",
