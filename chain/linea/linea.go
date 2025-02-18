@@ -1,4 +1,4 @@
-package binance
+package linea
 
 import (
 	"context"
@@ -31,7 +31,7 @@ import (
 	"github.com/dapplink-labs/wallet-chain-account/rpc/common"
 )
 
-const ChainName = "BscChain"
+const ChainName = "Linea"
 
 type ChainAdaptor struct {
 	ethClient     erc20Base.EthClient
@@ -39,11 +39,11 @@ type ChainAdaptor struct {
 }
 
 func NewChainAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
-	ethClient, err := erc20Base.DialEthClient(context.Background(), conf.WalletNode.Bsc.RpcUrl)
+	ethClient, err := erc20Base.DialEthClient(context.Background(), conf.WalletNode.Linea.RpcUrl)
 	if err != nil {
 		return nil, err
 	}
-	ethDataClient, err := erc20Base.NewEthDataClient(conf.WalletNode.Bsc.DataApiUrl, conf.WalletNode.Bsc.DataApiKey, time.Duration(conf.WalletNode.Bsc.TimeOut))
+	ethDataClient, err := erc20Base.NewEthDataClient(conf.WalletNode.Linea.DataApiUrl, conf.WalletNode.Linea.DataApiKey, time.Duration(conf.WalletNode.Linea.TimeOut))
 	if err != nil {
 		return nil, err
 	}
@@ -125,8 +125,8 @@ func (c *ChainAdaptor) GetBlockByNumber(req *account.BlockNumberRequest) (*accou
 			Msg:  err.Error(),
 		}, err
 	}
-
 	height, _ := rsp.NumberUint64()
+
 	var blockTxList []*account.BlockInfoTransactionList
 	for _, tx := range rsp.Transactions {
 		blockTxList = append(blockTxList, &account.BlockInfoTransactionList{
@@ -157,7 +157,6 @@ func (c *ChainAdaptor) GetBlockByHash(req *account.BlockHashRequest) (*account.B
 			Msg:  err.Error(),
 		}, err
 	}
-
 	height, _ := rsp.NumberUint64()
 
 	var blockTxList []*account.BlockInfoTransactionList
@@ -204,7 +203,7 @@ func (c *ChainAdaptor) GetBlockHeaderByHash(req *account.BlockHeaderHashRequest)
 		GasLimit:    rsp.GasLimit,
 		GasUsed:     rsp.GasUsed,
 		Time:        rsp.Time,
-		Extra:       hex.EncodeToString(rsp.Extra),
+		Extra:       string(rsp.Extra),
 		MixDigest:   rsp.MixDigest.String(),
 		Nonce:       strconv.FormatUint(rsp.Nonce.Uint64(), 10),
 		BaseFee:     rsp.BaseFee.String(),

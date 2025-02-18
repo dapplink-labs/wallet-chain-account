@@ -1,10 +1,11 @@
-package mantle
+package scroll
 
 import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"github.com/dapplink-labs/wallet-chain-account/chain"
+	"github.com/dapplink-labs/wallet-chain-account/chain/evmbase"
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -64,7 +65,7 @@ func TestChainAdaptor_ValidAddress(t *testing.T) {
 	}
 	rsp, err := adaptor.ValidAddress(&account.ValidAddressRequest{
 		Chain:   ChainName,
-		Address: "0xdda22000e1bcc0c70c8b1947ce7074df1dc5b80b",
+		Address: "0x4740d7eE1bD4576aD962f2806b112998Cc3B72Fc",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -80,7 +81,7 @@ func TestChainAdaptor_GetBlockByNumber(t *testing.T) {
 	}
 	rsp, err := adaptor.GetBlockByNumber(&account.BlockNumberRequest{
 		Chain:  ChainName,
-		Height: 75827131,
+		Height: 13508444,
 	})
 	if err != nil {
 
@@ -97,7 +98,7 @@ func TestChainAdaptor_GetBlockByHash(t *testing.T) {
 	}
 	rsp, err := adaptor.GetBlockByHash(&account.BlockHashRequest{
 		Chain: ChainName,
-		Hash:  "0xbf7cae969b7186108bad8866ffff3ecbec0200c14698500b7f5d12375adbc466",
+		Hash:  "0xabb5ec30e3bf65d373b65d0ba24e45031447d185df9c35bc2171f4e05bf3cd9d",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -114,7 +115,7 @@ func TestChainAdaptor_GetBlockHeaderByHash(t *testing.T) {
 	}
 	rsp, err := adaptor.GetBlockHeaderByHash(&account.BlockHeaderHashRequest{
 		Chain: ChainName,
-		Hash:  "0xbf7cae969b7186108bad8866ffff3ecbec0200c14698500b7f5d12375adbc466",
+		Hash:  "0xabb5ec30e3bf65d373b65d0ba24e45031447d185df9c35bc2171f4e05bf3cd9d",
 	})
 	if err != nil {
 
@@ -130,7 +131,7 @@ func TestChainAdaptor_GetBlockHeaderByNumber(t *testing.T) {
 	}
 	rsp, err := adaptor.GetBlockHeaderByNumber(&account.BlockHeaderNumberRequest{
 		Chain:  ChainName,
-		Height: 75827131,
+		Height: 13508444,
 	})
 	if err != nil {
 
@@ -146,8 +147,8 @@ func TestChainAdaptor_GetAccount(t *testing.T) {
 	}
 	rsp, err := adaptor.GetAccount(&account.AccountRequest{
 		Chain:           ChainName,
-		Address:         "0xdda22000e1bcc0c70c8b1947ce7074df1dc5b80b",
-		ContractAddress: "0x1Bdd8878252DaddD3Af2ba30628813271294eDc0",
+		Address:         "0x4640531c3A8E6C575A4cA2890f4032844123fA33",
+		ContractAddress: "0xb0643F7b3e2E2F10FE4e38728a763eC05f4ADeC3",
 	})
 	if err != nil {
 		t.Error(err)
@@ -180,8 +181,8 @@ func TestChainAdaptor_GetTxByAddress(t *testing.T) {
 	}
 	rsp, err := adaptor.GetTxByAddress(&account.TxAddressRequest{
 		Chain:           ChainName,
-		Address:         "0xDDA22000e1bCC0c70C8b1947CE7074df1DC5B80B",
-		ContractAddress: "0x1Bdd8878252DaddD3Af2ba30628813271294eDc0",
+		Address:         "0x4640531c3A8E6C575A4cA2890f4032844123fA33",
+		ContractAddress: "0xb0643F7b3e2E2F10FE4e38728a763eC05f4ADeC3",
 	})
 	if err != nil {
 		t.Error(err)
@@ -197,7 +198,7 @@ func TestChainAdaptor_GetTxByHash(t *testing.T) {
 	}
 	rsp, err := adaptor.GetTxByHash(&account.TxHashRequest{
 		Chain: ChainName,
-		Hash:  "0xfe66799cd6de5b8a6a9657bf91cb64101d8c0f511b52ab644b43bb92688d2a26",
+		Hash:  "0x2001ed0c6416bfb072038186bb83de4ee63569ab0d5b1487a5c4c2b4f83ac9c7",
 	})
 	if err != nil {
 		t.Error(err)
@@ -213,8 +214,8 @@ func TestChainAdaptor_GetBlockByRange(t *testing.T) {
 	}
 	rsp, err := adaptor.GetBlockByRange(&account.BlockByRangeRequest{
 		Chain: ChainName,
-		Start: "75827131",
-		End:   "75827133",
+		Start: "13508444",
+		End:   "13508445",
 	})
 	if err != nil {
 		t.Error(err)
@@ -247,15 +248,17 @@ func TestChainAdaptor_BuildSignedTransaction(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	txDataHash := "0xb419c2ec2cc8297a42f81dd4ebec5697bcc4ae992606c7eb689913382b8f2813"
+	txDataHash := "0xc1c234195ac9871215cd960190893c4b361699b207d4d546ad8d9de175633e08"
 	privateKey := ""
 	signature, err := signHash(txDataHash, privateKey)
 	if err != nil {
 		t.Error(err)
 	}
 
+	log.Info("signature:", signature)
 	signBase64Tx := createTestBase64Tx(signature, 0, "", "")
 
+	log.Info("signBase64Tx:", signBase64Tx)
 	rsp, err := adaptor.BuildSignedTransaction(&account.SignedTransactionRequest{
 		Chain:    ChainName,
 		Base64Tx: signBase64Tx,
@@ -276,7 +279,7 @@ func TestChainAdaptor_SendTx(t *testing.T) {
 
 	rsp, err := adaptor.SendTx(&account.SendTxRequest{
 		Chain: ChainName,
-		RawTx: "0x02f8b4821388018504c7165a0085060db88400830186a0941bdd8878252daddd3af2ba30628813271294edc080b844a9059cbb0000000000000000000000008218a0f47f4c0de0c1754f50874707cd6e7b2e5e000000000000000000000000000000000000000000000000016345785d8a0000c001a08649363f6ecab9c46f47bfb718ca2d90c4ebd836d4bd1bddb0cbafa62ea76beba00a3fa998a3274eef0925eb076c36017c65c0e03ad7f037b768a3040b22ae4b0e",
+		RawTx: "",
 	})
 	if err != nil {
 		t.Error(err)
@@ -288,7 +291,7 @@ func TestChainAdaptor_SendTx(t *testing.T) {
 func createTestBase64Tx(signature string, limit uint64, maxGas string, priorityGas string) string {
 
 	if limit == 0 {
-		limit = 100000
+		limit = 1200606
 	}
 	if maxGas == "" {
 		maxGas = "26000000000"
@@ -297,16 +300,16 @@ func createTestBase64Tx(signature string, limit uint64, maxGas string, priorityG
 		priorityGas = "20520000000"
 	}
 
-	testTx := Eip1559DynamicFeeTx{
-		Nonce:                1,
-		FromAddress:          "0xDDA22000e1bCC0c70C8b1947CE7074df1DC5B80B",
+	testTx := evmbase.Eip1559DynamicFeeTx{
+		Nonce:                7,
+		FromAddress:          "0x4640531c3A8E6C575A4cA2890f4032844123fA33",
 		ToAddress:            "0x8218a0F47F4c0dE0c1754f50874707cd6e7b2e5e",
-		Amount:               "100000000000000000",
+		Amount:               "500000000000000000",
 		MaxPriorityFeePerGas: priorityGas,
 		MaxFeePerGas:         maxGas,
 		GasLimit:             limit,
-		ChainId:              "5000",
-		ContractAddress:      "0x1Bdd8878252DaddD3Af2ba30628813271294eDc0",
+		ChainId:              "534352",
+		ContractAddress:      "0xb0643F7b3e2E2F10FE4e38728a763eC05f4ADeC3",
 		Signature:            signature,
 	}
 
@@ -319,21 +322,21 @@ func createTestBase64Tx(signature string, limit uint64, maxGas string, priorityG
 	return base64Str
 }
 
-// {"msg":"get gas price success","slow_fee":"20000000|0","normal_fee":"20000000|0|*2","fast_fee":"20000000|0|*3"}
+// "slow_fee":"39726923|100","normal_fee":"39726923|100|*2","fast_fee":"39726923|100|*3"
 func TestChainAdaptor_SendTx2(t *testing.T) {
 
-	privateKey := "8191d4626b096f3b7dcf90d71931011de7750f7bbf1684792f3d91d93c5926e3"
+	privateKey := ""
 
 	// 获取当前区块的 baseFee（即当前区块的基础费用）
-	baseFee := new(big.Int).SetUint64(20000000)
+	baseFee := new(big.Int).SetUint64(39726923)
 
 	// 设置最大优先费用（maxPriorityFeePerGas）为 2 Gwei
-	maxPriorityFeePerGas := new(big.Int).SetUint64(2 * params.GWei)
+	maxPriorityFeePerGas := new(big.Int).SetUint64(0.2 * params.GWei)
 
 	// 计算 maxFeePerGas = baseFee + maxPriorityFeePerGas
 	maxFeePerGas := new(big.Int).Add(baseFee, maxPriorityFeePerGas)
 
-	limit := uint64(250226535)
+	limit := uint64(1200606)
 
 	adaptor, err := setup()
 	if err != nil {

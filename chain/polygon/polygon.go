@@ -24,6 +24,7 @@ import (
 
 	account2 "github.com/dapplink-labs/chain-explorer-api/common/account"
 	"github.com/dapplink-labs/wallet-chain-account/chain"
+	"github.com/dapplink-labs/wallet-chain-account/chain/evmbase"
 	erc20Base "github.com/dapplink-labs/wallet-chain-account/chain/evmbase"
 	"github.com/dapplink-labs/wallet-chain-account/common/util"
 	"github.com/dapplink-labs/wallet-chain-account/config"
@@ -527,7 +528,7 @@ func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionReq
 	log.Info("ethereum CreateUnSignTransaction", "dFeeTx", util.ToJSONString(dFeeTx))
 
 	// Create unsigned transaction
-	rawTx, err := CreateEip1559UnSignTx(dFeeTx, dFeeTx.ChainID)
+	rawTx, err := evmbase.CreateEip1559UnSignTx(dFeeTx, dFeeTx.ChainID)
 	if err != nil {
 		log.Error("create un sign tx fail", "err", err)
 		response.Msg = "get un sign tx fail"
@@ -563,7 +564,7 @@ func (c *ChainAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequ
 		return nil, fmt.Errorf("invalid signature: %w", err)
 	}
 
-	signer, signedTx, rawTx, txHash, err := CreateEip1559SignedTx(dFeeTx, inputSignatureByteList, dFeeTx.ChainID)
+	signer, signedTx, rawTx, txHash, err := evmbase.CreateEip1559SignedTx(dFeeTx, inputSignatureByteList, dFeeTx.ChainID)
 	if err != nil {
 		log.Error("create signed tx fail", "err", err)
 		return nil, fmt.Errorf("create signed tx fail: %w", err)
@@ -622,7 +623,7 @@ func (c *ChainAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.Ext
 }
 
 // buildDynamicFeeTx 构建动态费用交易的公共方法
-func (c *ChainAdaptor) buildDynamicFeeTx(base64Tx string) (*types.DynamicFeeTx, *Tx, error) {
+func (c *ChainAdaptor) buildDynamicFeeTx(base64Tx string) (*types.DynamicFeeTx, *evmbase.Eip1559DynamicFeeTx, error) {
 	// 1. Decode base64 string
 	txReqJsonByte, err := base64.StdEncoding.DecodeString(base64Tx)
 	if err != nil {
@@ -631,7 +632,7 @@ func (c *ChainAdaptor) buildDynamicFeeTx(base64Tx string) (*types.DynamicFeeTx, 
 	}
 
 	// 2. Unmarshal JSON to struct
-	var dynamicFeeTx Tx
+	var dynamicFeeTx evmbase.Eip1559DynamicFeeTx
 	if err := json.Unmarshal(txReqJsonByte, &dynamicFeeTx); err != nil {
 		log.Error("parse json fail", "err", err)
 		return nil, nil, err
@@ -672,7 +673,7 @@ func (c *ChainAdaptor) buildDynamicFeeTx(base64Tx string) (*types.DynamicFeeTx, 
 		finalAmount = amount
 	} else {
 		contractAddress := common.HexToAddress(dynamicFeeTx.ContractAddress)
-		buildData = BuildErc20Data(toAddress, amount)
+		buildData = evmbase.BuildErc20Data(toAddress, amount)
 		finalToAddress = contractAddress
 		finalAmount = big.NewInt(0)
 	}
@@ -693,7 +694,7 @@ func (c *ChainAdaptor) buildDynamicFeeTx(base64Tx string) (*types.DynamicFeeTx, 
 }
 
 // 判断是否为 ETH 转账
-func isEthTransfer(tx *Tx) bool {
+func isEthTransfer(tx *evmbase.Eip1559DynamicFeeTx) bool {
 	// 检查合约地址是否为空或零地址
 	if tx.ContractAddress == "" ||
 		tx.ContractAddress == "0x0000000000000000000000000000000000000000" ||

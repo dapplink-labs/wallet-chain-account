@@ -6,12 +6,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	account2 "github.com/dapplink-labs/chain-explorer-api/common/account"
-	"github.com/dapplink-labs/wallet-chain-account/chain"
-	erc20Base "github.com/dapplink-labs/wallet-chain-account/chain/evmbase"
-	"github.com/dapplink-labs/wallet-chain-account/config"
-	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
-	"github.com/dapplink-labs/wallet-chain-account/rpc/common"
+	"math/big"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/ethereum/go-ethereum"
 	common2 "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -21,11 +21,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
 	"github.com/status-im/keycard-go/hexutils"
-	"math/big"
-	"regexp"
-	"strconv"
-	"strings"
-	"time"
+
+	account2 "github.com/dapplink-labs/chain-explorer-api/common/account"
+	"github.com/dapplink-labs/wallet-chain-account/chain"
+	"github.com/dapplink-labs/wallet-chain-account/chain/evmbase"
+	erc20Base "github.com/dapplink-labs/wallet-chain-account/chain/evmbase"
+	"github.com/dapplink-labs/wallet-chain-account/config"
+	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
+	"github.com/dapplink-labs/wallet-chain-account/rpc/common"
 )
 
 const ChainName = "Mantle"
@@ -519,7 +522,7 @@ func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionReq
 		}, err
 	}
 
-	rwaTx, err := CreateEip1559UnSignTx(dyTx, dyTx.ChainID)
+	rwaTx, err := evmbase.CreateEip1559UnSignTx(dyTx, dyTx.ChainID)
 	if err != nil {
 		log.Error("create unsign transaction fail", "err", err)
 		return &account.UnSignTransactionResponse{
@@ -555,7 +558,7 @@ func (c *ChainAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequ
 		}, fmt.Errorf("invalid signature: %w", err)
 	}
 
-	signer, signedTx, rawTx, txHash, err := CreateEip1559SignedTx(dyTx, inputSignatureByteList, dyTx.ChainID)
+	signer, signedTx, rawTx, txHash, err := evmbase.CreateEip1559SignedTx(dyTx, inputSignatureByteList, dyTx.ChainID)
 	if err != nil {
 		log.Error("create signed tx fail", "err", err)
 		return &account.SignedTransactionResponse{
@@ -627,7 +630,7 @@ func getSafeHashString(hash *common2.Hash) string {
 }
 
 // buildDynamicFeeTx build eip1559 tx
-func (c *ChainAdaptor) buildDynamicFeeTx(base64Tx string) (*types.DynamicFeeTx, *Eip1559DynamicFeeTx, error) {
+func (c *ChainAdaptor) buildDynamicFeeTx(base64Tx string) (*types.DynamicFeeTx, *evmbase.Eip1559DynamicFeeTx, error) {
 	// Decode base64 string
 	txReqJsonByte, err := base64.StdEncoding.DecodeString(base64Tx)
 	if err != nil {
@@ -635,7 +638,7 @@ func (c *ChainAdaptor) buildDynamicFeeTx(base64Tx string) (*types.DynamicFeeTx, 
 		return nil, nil, err
 	}
 
-	var dynamicFeeTx Eip1559DynamicFeeTx
+	var dynamicFeeTx evmbase.Eip1559DynamicFeeTx
 	if err := json.Unmarshal(txReqJsonByte, &dynamicFeeTx); err != nil {
 		log.Error("parse json fail", "err", err)
 		return nil, nil, err
@@ -672,7 +675,7 @@ func (c *ChainAdaptor) buildDynamicFeeTx(base64Tx string) (*types.DynamicFeeTx, 
 		finalAmount = amount
 	} else {
 		contractAddress := common2.HexToAddress(dynamicFeeTx.ContractAddress)
-		buildData = BuildErc20Data(toAddress, amount)
+		buildData = evmbase.BuildErc20Data(toAddress, amount)
 		finalToAddress = contractAddress
 		finalAmount = big.NewInt(0)
 	}
@@ -693,7 +696,7 @@ func (c *ChainAdaptor) buildDynamicFeeTx(base64Tx string) (*types.DynamicFeeTx, 
 }
 
 // 判断是否为 ETH 转账
-func isEthTransfer(tx *Eip1559DynamicFeeTx) bool {
+func isEthTransfer(tx *evmbase.Eip1559DynamicFeeTx) bool {
 	// 检查合约地址是否为空或零地址
 	if tx.ContractAddress == "" ||
 		tx.ContractAddress == "0x0000000000000000000000000000000000000000" ||

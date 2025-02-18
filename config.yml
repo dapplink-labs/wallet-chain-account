@@ -3,7 +3,7 @@ server:
 
 network: mainnet
 
-chains: [Ethereum, Solana, Tron, Aptos, Sui, Arbitrum,BscChain,Mantle ,Optimism,Polygon]
+chains: [Ethereum, Solana, Tron, Aptos, Sui, Arbitrum,BscChain,Mantle ,Optimism,Linea,Scroll,Polygon]
 
 wallet_node:
   eth:
@@ -109,6 +109,24 @@ wallet_node:
     rpc_pass: ''
     data_api_url: 'https://api.mantlescan.xyz/api?'
     data_api_key: '52G7PCPGGZGT9BBM992CQUZID5RB54NUI8'
+    data_api_token: ''
+    time_out: 15
+
+  linea:
+    rpc_url: 'https://linea-mainnet.g.alchemy.com/v2/tQ6olBJhhJY0_v04kavsliE758vz_qE_'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: 'https://api.lineascan.build/api?'
+    data_api_key: 'JTA7AJMNTEZD48QUMYJ12XU5DPNA7BSU5B'
+    data_api_token: ''
+    time_out: 15
+
+  scroll:
+    rpc_url: 'https://scroll-mainnet.g.alchemy.com/v2/tQ6olBJhhJY0_v04kavsliE758vz_qE_'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: 'https://api.scrollscan.com/api?'
+    data_api_key: 'AKBS2JGA31IK19WGBHWP8JVASRRMXGX9PP'
     data_api_token: ''
     time_out: 15
 

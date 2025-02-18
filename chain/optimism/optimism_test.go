@@ -2,10 +2,14 @@ package optimism
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"github.com/dapplink-labs/wallet-chain-account/chain"
+	"github.com/dapplink-labs/wallet-chain-account/chain/evmbase"
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"math/big"
@@ -246,7 +250,7 @@ func TestChainAdaptor_BuildSignedTransaction(t *testing.T) {
 
 	txDataHash := "0xc1c234195ac9871215cd960190893c4b361699b207d4d546ad8d9de175633e08"
 	privateKey := ""
-	signature, err := SignHash(txDataHash, privateKey)
+	signature, err := signHash(txDataHash, privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -296,7 +300,7 @@ func createTestBase64Tx(signature string, limit uint64, maxGas string, priorityG
 		priorityGas = "20520000000"
 	}
 
-	testTx := Eip1559DynamicFeeTx{
+	testTx := evmbase.Eip1559DynamicFeeTx{
 		Nonce:                5,
 		FromAddress:          "0x4740d7eE1bD4576aD962f2806b112998Cc3B72Fc",
 		ToAddress:            "0x8218a0F47F4c0dE0c1754f50874707cd6e7b2e5e",
@@ -349,7 +353,7 @@ func TestChainAdaptor_SendTx2(t *testing.T) {
 	}
 
 	log.Info("hash =====  ", rsp0.UnSignTx)
-	signature, err := SignHash(rsp0.UnSignTx, privateKey)
+	signature, err := signHash(rsp0.UnSignTx, privateKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -375,4 +379,25 @@ func TestChainAdaptor_SendTx2(t *testing.T) {
 
 	js, _ := json.Marshal(rsp2)
 	log.Info(string(js))
+}
+
+func signHash(hash string, privateKey string) (signature string, err error) {
+	bytes, err := hexutil.Decode(hash)
+	if err != nil {
+		panic(err)
+	}
+	prkByte, err := hex.DecodeString(privateKey)
+	if err != nil {
+		panic(err)
+	}
+	prk, err := crypto.ToECDSA(prkByte)
+	if err != nil {
+		panic(err)
+	}
+	sig, err := crypto.Sign(bytes, prk)
+	if err != nil {
+		panic(err)
+	}
+	signature = hex.EncodeToString(sig)
+	return signature, nil
 }

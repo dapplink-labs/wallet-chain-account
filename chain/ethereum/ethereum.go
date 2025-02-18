@@ -24,6 +24,7 @@ import (
 
 	account2 "github.com/dapplink-labs/chain-explorer-api/common/account"
 	"github.com/dapplink-labs/wallet-chain-account/chain"
+	"github.com/dapplink-labs/wallet-chain-account/chain/evmbase"
 	erc20_base2 "github.com/dapplink-labs/wallet-chain-account/chain/evmbase"
 	"github.com/dapplink-labs/wallet-chain-account/common/util"
 	"github.com/dapplink-labs/wallet-chain-account/config"
@@ -500,7 +501,7 @@ func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionReq
 	log.Info("ethereum CreateUnSignTransaction", "dFeeTx", util.ToJSONString(dFeeTx))
 
 	// Create unsigned transaction
-	rawTx, err := CreateEip1559UnSignTx(dFeeTx, dFeeTx.ChainID)
+	rawTx, err := evmbase.CreateEip1559UnSignTx(dFeeTx, dFeeTx.ChainID)
 	if err != nil {
 		log.Error("create un sign tx fail", "err", err)
 		response.Msg = "get un sign tx fail"
@@ -536,7 +537,7 @@ func (c *ChainAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequ
 		return nil, fmt.Errorf("invalid signature: %w", err)
 	}
 
-	signer, signedTx, rawTx, txHash, err := CreateEip1559SignedTx(dFeeTx, inputSignatureByteList, dFeeTx.ChainID)
+	signer, signedTx, rawTx, txHash, err := evmbase.CreateEip1559SignedTx(dFeeTx, inputSignatureByteList, dFeeTx.ChainID)
 	if err != nil {
 		log.Error("create signed tx fail", "err", err)
 		return nil, fmt.Errorf("create signed tx fail: %w", err)
@@ -645,7 +646,7 @@ func (c *ChainAdaptor) buildDynamicFeeTx(base64Tx string) (*types.DynamicFeeTx, 
 		finalAmount = amount
 	} else {
 		contractAddress := common.HexToAddress(dynamicFeeTx.ContractAddress)
-		buildData = BuildErc20Data(toAddress, amount)
+		buildData = evmbase.BuildErc20Data(toAddress, amount)
 		finalToAddress = contractAddress
 		finalAmount = big.NewInt(0)
 	}

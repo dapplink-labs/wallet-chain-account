@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/dapplink-labs/wallet-chain-account/chain/evmbase"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -254,7 +255,7 @@ func TestChainAdaptor_GetBlockByRange(t *testing.T) {
 
 func createTestBase64Tx() string {
 
-	testTx := Tx{
+	testTx := evmbase.Eip1559DynamicFeeTx{
 		Nonce:                10,
 		FromAddress:          "0x67936bb11f8fd1d25da1f94e0aa51039409a7c97",
 		ToAddress:            "0x85606bfea925e96285583fabadfcf9cb25bd6721",
