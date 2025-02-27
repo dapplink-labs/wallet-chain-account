@@ -161,10 +161,12 @@ require (
 
 require (
 	cosmossdk.io/math v1.3.0
+	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/coinbase/rosetta-sdk-go v0.8.8
 	github.com/coinbase/rosetta-sdk-go/types v1.0.0
 	github.com/cometbft/cometbft v0.38.13
 	github.com/cosmos/btcutil v1.0.5
+	github.com/eteu-technologies/near-api-go v0.0.1
 	github.com/gagliardetto/solana-go v1.11.0
 	github.com/shopspring/decimal v1.3.1
 	github.com/test-go/testify v1.1.4
@@ -184,6 +186,8 @@ require (
 	github.com/cosmos/gogogateway v1.2.0 // indirect
 	github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f // indirect
 	github.com/dgraph-io/badger/v4 v4.2.0 // indirect
+	github.com/eteu-technologies/borsh-go v0.3.2 // indirect
+	github.com/eteu-technologies/golang-uint128 v1.1.2-eteu // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gagliardetto/binary v0.8.0 // indirect
 	github.com/gagliardetto/treeout v0.1.4 // indirect
