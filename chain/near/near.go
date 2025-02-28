@@ -3,11 +3,18 @@ package near
 // NEAR JSON RPC交互示例（官方接口封装）
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	common2 "github.com/dapplink-labs/wallet-chain-account/rpc/common"
+	"github.com/eteu-technologies/borsh-go"
+	uint128 "github.com/eteu-technologies/golang-uint128"
 	nearClient "github.com/eteu-technologies/near-api-go/pkg/client"
 	"github.com/eteu-technologies/near-api-go/pkg/client/block"
+	"github.com/eteu-technologies/near-api-go/pkg/types"
+	"github.com/eteu-technologies/near-api-go/pkg/types/action"
+	"github.com/eteu-technologies/near-api-go/pkg/types/key"
+	"github.com/eteu-technologies/near-api-go/pkg/types/transaction"
 	"github.com/ethereum/go-ethereum/log"
 	"strconv"
 	"sync"
@@ -37,33 +44,86 @@ func NewNearAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
 
 // BuildSignedTransaction implements chain.IChainAdaptor.
 func (n *NearAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequest) (*account.SignedTransactionResponse, error) {
-	//ctx context.Context, from, to types.AccountID, actions []action.Action, txnOpts ...TransactionOpt) (res FinalExecutionOutcomeView, err error
-	//ctx := context.Background()
-	//from := req.PublicKey'
-	//dyTx, _, err := n.buildDynamicFeeTx(req.Base64Tx)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//to := dyTx.To
-	//n.nearClient.TransactionSendAwait(context.Background(), dyTx.)
-	panic("unimplemented")
+	// 1.encode params get extract params
+	ctx := context.Background()
+	nearTransaction, err := n.buildDynamicFeeTx(req.Base64Tx)
+	if err != nil {
+		return nil, err
+	}
+	kp, err := key.NewBase58KeyPair(nearTransaction.PrivateKey)
+
+	if err != nil {
+		log.Error(err.Error())
+		return nil, err
+	}
+	ctx = contextWithKeyPair(context.Background(), kp)
+	parseUint, err := strconv.ParseUint(nearTransaction.Amount, 10, 64)
+	var Balance = types.Balance(uint128.From64(parseUint))
+	actions := []action.Action{
+		action.NewTransfer(Balance),
+	}
+	// 2. build transaction and sign
+	keypair, transactionData, err := n.PrepareTransaction(ctx, nearTransaction.Sender, nearTransaction.Receiver, actions)
+
+	// 3. sign transcation
+	blob, err := n.SignTransaction(keypair, transactionData)
+	return &account.SignedTransactionResponse{
+		Code:     common2.ReturnCode_SUCCESS,
+		Msg:      "build transaction success",
+		SignedTx: blob,
+	}, nil
 }
 
 // ConvertAddress implements chain.IChainAdaptor.
 func (n *NearAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account.ConvertAddressResponse, error) {
-	//n.nearClient.Acc
 	panic("unimplemented")
 }
 
 // CreateUnSignTransaction implements chain.IChainAdaptor.
 func (n *NearAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
-	// Create a new transaction
-	panic("unimplemented")
+	// 1.encode params
+	ctx := context.Background()
+	nearTransaction, err := n.buildDynamicFeeTx(req.Base64Tx)
+	if err != nil {
+		return nil, err
+	}
+	kp, err := key.NewBase58KeyPair(nearTransaction.PrivateKey)
+
+	if err != nil {
+		log.Error(err.Error())
+		return nil, err
+	}
+	ctx = contextWithKeyPair(context.Background(), kp)
+	parseUint, err := strconv.ParseUint(nearTransaction.Amount, 10, 64)
+	var Balance = types.Balance(uint128.From64(parseUint))
+	actions := []action.Action{
+		action.NewTransfer(Balance),
+	}
+	// 2. build transaction and sign
+	_, transactionData, err := n.PrepareTransaction(ctx, nearTransaction.Sender, nearTransaction.Receiver, actions)
+
+	// 3.Serialize into Borsh
+	_, serialized, err := transactionData.Hash()
+	return &account.UnSignTransactionResponse{
+		Code:     common2.ReturnCode_SUCCESS,
+		Msg:      "create un sign transaction success",
+		UnSignTx: string(serialized),
+	}, nil
 }
 
 // DecodeTransaction implements chain.IChainAdaptor.
 func (n *NearAdaptor) DecodeTransaction(req *account.DecodeTransactionRequest) (*account.DecodeTransactionResponse, error) {
-	panic("unimplemented")
+	var t transaction.Transaction
+	borsh.Deserialize(&t, []byte(req.RawTx))
+	marshal, err := json.Marshal(&t)
+	if err != nil {
+		log.Error(err.Error())
+	}
+	return &account.DecodeTransactionResponse{
+		Code:     common2.ReturnCode_SUCCESS,
+		Msg:      "decode transaction success",
+		Base64Tx: base64.StdEncoding.EncodeToString(marshal),
+	}, nil
 }
 
 // GetAccount implements chain.IChainAdaptor.
@@ -468,6 +528,7 @@ func (n *NearAdaptor) SendTx(req *account.SendTxRequest) (*account.SendTxRespons
 
 // ValidAddress implements chain.IChainAdaptor.
 func (n *NearAdaptor) ValidAddress(req *account.ValidAddressRequest) (*account.ValidAddressResponse, error) {
+	// Near chain 可以自定义地址 所以无法验证地址 理论上说任何地址都是有效的 之后发送交易到链上才能知道地址是否真的有效
 	panic("unimplemented")
 }
 
@@ -480,80 +541,18 @@ func (n *NearAdaptor) VerifySignedTransaction(req *account.VerifyTransactionRequ
 	}, nil
 }
 
-//
-//// buildDynamicFeeTx build eip1559 tx
-//func (c *NearAdaptor) buildDynamicFeeTx(base64Tx string) (*types.DynamicFeeTx, *evmbase.Eip1559DynamicFeeTx, error) {
-//	// Decode base64 string
-//	txReqJsonByte, err := base64.StdEncoding.DecodeString(base64Tx)
-//	if err != nil {
-//		log.Error("decode string fail", "err", err)
-//		return nil, nil, err
-//	}
-//
-//	var dynamicFeeTx evmbase.Eip1559DynamicFeeTx
-//	if err := json.Unmarshal(txReqJsonByte, &dynamicFeeTx); err != nil {
-//		log.Error("parse json fail", "err", err)
-//		return nil, nil, err
-//	}
-//
-//	chainID := new(big.Int)
-//	maxPriorityFeePerGas := new(big.Int)
-//	maxFeePerGas := new(big.Int)
-//	amount := new(big.Int)
-//
-//	if _, ok := chainID.SetString(dynamicFeeTx.ChainId, 10); !ok {
-//		return nil, nil, fmt.Errorf("invalid chain ID: %s", dynamicFeeTx.ChainId)
-//	}
-//	if _, ok := maxPriorityFeePerGas.SetString(dynamicFeeTx.MaxPriorityFeePerGas, 10); !ok {
-//		return nil, nil, fmt.Errorf("invalid max priority fee: %s", dynamicFeeTx.MaxPriorityFeePerGas)
-//	}
-//	if _, ok := maxFeePerGas.SetString(dynamicFeeTx.MaxFeePerGas, 10); !ok {
-//		return nil, nil, fmt.Errorf("invalid max fee: %s", dynamicFeeTx.MaxFeePerGas)
-//	}
-//	if _, ok := amount.SetString(dynamicFeeTx.Amount, 10); !ok {
-//		return nil, nil, fmt.Errorf("invalid amount: %s", dynamicFeeTx.Amount)
-//	}
-//
-//	// 4. Handle addresses and data'
-//	toAddress := common.HexToAddress(dynamicFeeTx.ToAddress)
-//	var finalToAddress common.Address
-//	var finalAmount *big.Int
-//	var buildData []byte
-//	log.Info("contract address check", "contractAddress", dynamicFeeTx.ContractAddress, "isEthTransfer", isEthTransfer(&dynamicFeeTx))
-//
-//	// 5. Handle contract interaction vs direct transfer
-//	if isEthTransfer(&dynamicFeeTx) {
-//		finalToAddress = toAddress
-//		finalAmount = amount
-//	} else {
-//		contractAddress := common.HexToAddress(dynamicFeeTx.ContractAddress)
-//		buildData = evmbase.BuildErc20Data(toAddress, amount)
-//		finalToAddress = contractAddress
-//		finalAmount = big.NewInt(0)
-//	}
-//
-//	// 6. Create dynamic fee transaction
-//	dFeeTx := &types.DynamicFeeTx{
-//		ChainID:   chainID,
-//		Nonce:     dynamicFeeTx.Nonce,
-//		GasTipCap: maxPriorityFeePerGas,
-//		GasFeeCap: maxFeePerGas,
-//		Gas:       dynamicFeeTx.GasLimit,
-//		To:        &finalToAddress,
-//		Value:     finalAmount,
-//		Data:      buildData,
-//	}
-//
-//	return dFeeTx, &dynamicFeeTx, nil
-//}
-//
-//// 判断是否为 ETH 转账
-//func isEthTransfer(tx *evmbase.Eip1559DynamicFeeTx) bool {
-//	// 检查合约地址是否为空或零地址
-//	if tx.ContractAddress == "" ||
-//		tx.ContractAddress == "0x0000000000000000000000000000000000000000" ||
-//		tx.ContractAddress == "0x00" {
-//		return true
-//	}
-//	return false
-//}
+// buildDynamicFeeTx
+func (c *NearAdaptor) buildDynamicFeeTx(base64Tx string) (*NearTransaction, error) {
+	// Decode base64 string
+	txReqJsonByte, err := base64.StdEncoding.DecodeString(base64Tx)
+	if err != nil {
+		log.Error("decode string fail", "err", err)
+		return nil, err
+	}
+	var nearTransaction NearTransaction
+	if err := json.Unmarshal(txReqJsonByte, &nearTransaction); err != nil {
+		log.Error("parse json fail", "err", err)
+		return nil, err
+	}
+	return &nearTransaction, nil
+}

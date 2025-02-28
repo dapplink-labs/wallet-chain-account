@@ -275,3 +275,41 @@ func TestChainAdaptor_SendTx(t *testing.T) {
 
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
 }
+
+func TestChainAdaptor_BuildSignedTransaction(t *testing.T) {
+	adaptor, err := setup()
+	if err != nil {
+		return
+	}
+	sendTxRequest := &account.SignedTransactionRequest{
+		Chain:    ChainName,
+		Base64Tx: "ewogICJwcml2YXRlX2tleSI6ICJlZDI1NTE5OnlwWEo1YngyVDNzUXUxZXd3anVhNHphOHp1QXRnUnl1dEhKVHRocVJpUHlpZWJrQVRYcFl5Mkt3amRMcERjOFFnYlJRdXRydXlxb2FVcFU1d0VyZ2V3YiIsCiAgImFjY291bnRfaWQiOiAiMjBiOWJkZjMyZjc2OGFjNmU2ZmYzYzlhYjUxMmQ0YmQ3Zjk0ZGJjZjRlOWQxNWJiOGNkM2MzYjQwNjJkNTg1YSIsCiAgInJlY2VpdmVyX2lkIjogInJlY2VpdmVyLnRlc3RuZXQiLAogICJhbW91bnQiOiAiMTAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsCiAgInB1YmxpY19rZXkiOiAiZWQyNTUxOTozQ2tLUjJlajJaWEVRaDd0WThia1ZrVnFpMnprdDMxc3ZhQTNNajN2M3BubSIKfQ==",
+	}
+	resp, err := adaptor.BuildSignedTransaction(sendTxRequest)
+	if err != nil {
+		t.Error("create build transaction failed:", err)
+		return
+	}
+
+	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
+	fmt.Println(resp)
+}
+
+func TestChainAdaptor_CreateUnSignTransaction(t *testing.T) {
+	adaptor, err := setup()
+	if err != nil {
+		return
+	}
+	sendTxRequest := &account.UnSignTransactionRequest{
+		Chain:    ChainName,
+		Base64Tx: "ewogICJwcml2YXRlX2tleSI6ICJlZDI1NTE5OnlwWEo1YngyVDNzUXUxZXd3anVhNHphOHp1QXRnUnl1dEhKVHRocVJpUHlpZWJrQVRYcFl5Mkt3amRMcERjOFFnYlJRdXRydXlxb2FVcFU1d0VyZ2V3YiIsCiAgImFjY291bnRfaWQiOiAiMjBiOWJkZjMyZjc2OGFjNmU2ZmYzYzlhYjUxMmQ0YmQ3Zjk0ZGJjZjRlOWQxNWJiOGNkM2MzYjQwNjJkNTg1YSIsCiAgInJlY2VpdmVyX2lkIjogInJlY2VpdmVyLnRlc3RuZXQiLAogICJhbW91bnQiOiAiMTAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsCiAgInB1YmxpY19rZXkiOiAiZWQyNTUxOTozQ2tLUjJlajJaWEVRaDd0WThia1ZrVnFpMnprdDMxc3ZhQTNNajN2M3BubSIKfQ==",
+	}
+	resp, err := adaptor.CreateUnSignTransaction(sendTxRequest)
+	if err != nil {
+		t.Error("create unsigned transaction failed:", err)
+		return
+	}
+
+	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
+	fmt.Println(resp)
+}

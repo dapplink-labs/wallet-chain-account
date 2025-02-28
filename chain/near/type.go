@@ -214,3 +214,11 @@ type ReceiptOutcome struct {
 		Hash      string `json:"hash"`
 	} `json:"proof"`
 }
+
+type NearTransaction struct {
+	PrivateKey string `json:"private_key"`
+	PublicKey  string `json:"public_key"`
+	Sender     string `json:"account_id"`
+	Receiver   string `json:"receiver_id"`
+	Amount     string `json:"amount"`
+}
