@@ -5,16 +5,16 @@ import (
 	nearClient "github.com/eteu-technologies/near-api-go/pkg/client"
 )
 
-type NearClient struct {
-	client *nearClient.Client
-}
+//type NearClient struct {
+//	client *nearClient.Client
+//}
 
-func NewNearClient(conf *config.Config) (*NearClient, error) {
-	newClient, err := nearClient.NewClient(conf.WalletNode.Sui.RpcUrl)
+func NewNearClient(conf *config.Config) (*nearClient.Client, error) {
+	newClient, err := nearClient.NewClient(conf.WalletNode.Near.RpcUrl)
 	if err != nil {
 		return nil, err
 	}
-	return &NearClient{client: &newClient}, nil
+	return &newClient, nil
 }
 
 /**

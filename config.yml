@@ -3,7 +3,7 @@ server:
 
 network: mainnet
 
-chains: [Ethereum, Solana, Tron, Aptos, Sui, Arbitrum,BscChain,Mantle ,Optimism,Linea,Scroll,Polygon]
+chains: [Ethereum, Solana, Tron, Aptos, Sui, Arbitrum,BscChain,Mantle ,Optimism,Linea,Scroll, Near]
 
 wallet_node:
   eth:
@@ -132,6 +132,15 @@ wallet_node:
 
   icp:
     rpc_url: 'http://localhost:8081'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: ''
+    data_api_key: ''
+    data_api_token: ''
+    time_out: 15
+
+  near:
+    rpc_url: 'https://docs-demo.near-mainnet.quiknode.pro/'
     rpc_user: ''
     rpc_pass: ''
     data_api_url: ''
