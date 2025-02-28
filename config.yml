@@ -3,7 +3,7 @@ server:
 
 network: mainnet
 
-chains: [Ethereum, Solana, Tron, Aptos, Sui, Arbitrum,BscChain,Mantle ,Optimism,Linea,Scroll,Polygon]
+chains: [Ethereum, Solana, Tron, Aptos, Sui, Arbitrum,BscChain,Mantle ,Optimism,Linea,Scroll,Polygon,Oasis]
 
 wallet_node:
   eth:
@@ -135,6 +135,15 @@ wallet_node:
     rpc_user: ''
     rpc_pass: ''
     data_api_url: ''
+    data_api_key: ''
+    data_api_token: ''
+    time_out: 15
+
+  oasis:
+    rpc_url: 'https://rosetta.oasis.io'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: 'https://nexus.oasis.io/v1/consensus'
     data_api_key: ''
     data_api_token: ''
     time_out: 15
