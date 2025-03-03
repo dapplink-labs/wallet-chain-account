@@ -3,7 +3,7 @@ server:
 
 network: mainnet
 
-chains: [Ethereum, Solana, Tron, Aptos, Sui, Arbitrum,BscChain,Mantle ,Optimism,Linea,Scroll,Polygon]
+chains: [Ethereum, Solana, Tron, Aptos, Sui, Arbitrum,BscChain,Mantle ,Optimism,Linea,Scroll,Polygon,ICP]
 
 wallet_node:
   eth:
@@ -131,7 +131,7 @@ wallet_node:
     time_out: 15
 
   icp:
-    rpc_url: 'http://localhost:8081'
+    rpc_url: 'https://rosetta-api.internetcomputer.org'
     rpc_user: ''
     rpc_pass: ''
     data_api_url: ''
