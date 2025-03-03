@@ -2,9 +2,11 @@ package icp
 
 import (
 	"context"
+	"encoding/hex"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/common"
-
 	"github.com/ethereum/go-ethereum/log"
+
+	"github.com/aviate-labs/agent-go/principal"
 
 	"github.com/dapplink-labs/wallet-chain-account/chain"
 	"github.com/dapplink-labs/wallet-chain-account/config"
@@ -14,6 +16,8 @@ import (
 const (
 	ChainName = "ICP"
 )
+
+var DefaultSubaccount = [32]byte{}
 
 type ChainAdaptor struct {
 	icpClient *IcpClient
@@ -40,8 +44,13 @@ func (c ChainAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*acco
 }
 
 func (c ChainAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account.ConvertAddressResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	publicKeyBytes, _ := hex.DecodeString(req.PublicKey)
+	p := principal.NewSelfAuthenticating(publicKeyBytes)
+	a := principal.NewAccountID(p, DefaultSubaccount)
+	return &account.ConvertAddressResponse{
+		Code: common.ReturnCode_SUCCESS, Msg: "convert address success",
+		Address: a.String(),
+	}, nil
 }
 
 func (c ChainAdaptor) ValidAddress(req *account.ValidAddressRequest) (*account.ValidAddressResponse, error) {
