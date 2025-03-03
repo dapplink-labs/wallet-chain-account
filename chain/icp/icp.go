@@ -5,12 +5,14 @@ import (
 	"encoding/hex"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/common"
 	"github.com/ethereum/go-ethereum/log"
+	"strings"
 
 	"github.com/aviate-labs/agent-go/principal"
 
 	"github.com/dapplink-labs/wallet-chain-account/chain"
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
+	common2 "github.com/dapplink-labs/wallet-chain-account/rpc/common"
 )
 
 const (
@@ -48,14 +50,26 @@ func (c ChainAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*accou
 	p := principal.NewSelfAuthenticating(publicKeyBytes)
 	a := principal.NewAccountID(p, DefaultSubaccount)
 	return &account.ConvertAddressResponse{
-		Code: common.ReturnCode_SUCCESS, Msg: "convert address success",
+		Code: common2.ReturnCode_SUCCESS, Msg: "convert address success",
 		Address: a.String(),
 	}, nil
 }
 
 func (c ChainAdaptor) ValidAddress(req *account.ValidAddressRequest) (*account.ValidAddressResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	_, err := principal.DecodeAccountID(req.Address)
+	if err != nil {
+		return &account.ValidAddressResponse{
+			Code:  common2.ReturnCode_ERROR,
+			Msg:   "invalid address",
+			Valid: false,
+		}, nil
+	} else {
+		return &account.ValidAddressResponse{
+			Code:  common2.ReturnCode_SUCCESS,
+			Msg:   "valid address",
+			Valid: true,
+		}, nil
+	}
 }
 
 func (c ChainAdaptor) GetBlockByNumber(req *account.BlockNumberRequest) (*account.BlockResponse, error) {
@@ -79,8 +93,31 @@ func (c ChainAdaptor) GetBlockHeaderByNumber(req *account.BlockHeaderNumberReque
 }
 
 func (c ChainAdaptor) GetAccount(req *account.AccountRequest) (*account.AccountResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	balance, err := c.icpClient.GetAccountBalance(req.Address)
+	if err != nil {
+		log.Error("get balance err", "err", err)
+		return &account.AccountResponse{
+			Code: common2.ReturnCode_ERROR,
+			Msg:  "Get balance err",
+		}, err
+	}
+	coinType := "icp"
+	if req.Coin != "" {
+		coinType = req.Coin
+	}
+	balanceResult := "0"
+	for _, b := range balance.Balances {
+		if strings.EqualFold(coinType, b.Currency.Symbol) {
+			balanceResult = b.Value
+		}
+	}
+	log.Info("balance result", "balance=", balance.Balances)
+	return &account.AccountResponse{
+		Code:    common2.ReturnCode_SUCCESS,
+		Msg:     "get account success",
+		Network: ChainName,
+		Balance: balanceResult,
+	}, nil
 }
 
 func (c ChainAdaptor) GetFee(req *account.FeeRequest) (*account.FeeResponse, error) {
