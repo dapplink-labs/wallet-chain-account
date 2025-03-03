@@ -3,7 +3,7 @@ server:
 
 network: mainnet
 
-chains: [Ethereum, Solana, Tron, Aptos, Sui, Arbitrum,BscChain,Mantle ,Optimism,Linea,Scroll,Polygon]
+chains: [Ethereum, Solana, Tron, Aptos, Sui, Arbitrum,BscChain,Mantle ,Optimism,Linea,Scroll,Polygon, Btt]
 
 wallet_node:
   eth:
@@ -139,3 +139,11 @@ wallet_node:
     data_api_token: ''
     time_out: 15
 
+  btt:
+    rpc_url: 'https://rpc.bt.io'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: 'https://api.bttcscan.com/api?'
+    data_api_key: 'HZEZGEPJJDA633N421AYW9NE8JFNZZC7JT'
+    data_api_token: ''
+    time_out: 15
