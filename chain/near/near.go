@@ -76,6 +76,7 @@ func (n *NearAdaptor) BuildSignedTransaction(req *account.SignedTransactionReque
 
 // ConvertAddress implements chain.IChainAdaptor.
 func (n *NearAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account.ConvertAddressResponse, error) {
+	// 用户可以自定义地址，这个方法无用
 	panic("unimplemented")
 }
 
@@ -454,7 +455,37 @@ func (n *NearAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*acco
 
 // GetTxByAddress implements chain.IChainAdaptor.
 func (n *NearAdaptor) GetTxByAddress(req *account.TxAddressRequest) (*account.TxAddressResponse, error) {
-	panic("unimplemented")
+	transactions, err := getAccountTransactions(req.Address)
+	if err != nil {
+		log.Error("GetTxByAddress err", "err", err)
+	}
+	var txMessageData []*account.TxMessage
+	for _, t := range transactions {
+		for _, ta := range t.Actions {
+			if ta.Action == "TRANSFER" {
+				message := &account.TxMessage{
+					Hash:  t.TransactionHash,
+					Index: 0,
+					Froms: []*account.Address{{
+						Address: t.SignerAccountID,
+					}},
+					Tos: []*account.Address{{
+						Address: t.ReceiverAccountID,
+					}},
+					Fee:      strconv.FormatFloat(ta.Fee, 'f', -1, 64),
+					Height:   strconv.FormatInt(int64(t.Block.BlockHeight), 10),
+					Datetime: t.BlockTimestamp,
+				}
+				txMessageData = append(txMessageData, message)
+			}
+		}
+
+	}
+	return &account.TxAddressResponse{
+		Code: common2.ReturnCode_SUCCESS,
+		Msg:  "get GetTxByAddress success",
+		Tx:   txMessageData,
+	}, nil
 }
 
 // GetTxByHash implements chain.IChainAdaptor.
@@ -479,18 +510,6 @@ func (n *NearAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashRe
 		totalGasPrice = totalGasPrice + parseUint
 	}
 	message := &account.TxMessage{
-		//Hash            string     `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
-		//Index           uint32     `protobuf:"varint,2,opt,name=index,proto3" json:"index,omitempty"`
-		//Froms           []*Address `protobuf:"bytes,3,rep,name=froms,proto3" json:"froms,omitempty"`
-		//Tos             []*Address `protobuf:"bytes,4,rep,name=tos,proto3" json:"tos,omitempty"`
-		//Values          []*Value   `protobuf:"bytes,7,rep,name=values,proto3" json:"values,omitempty"`
-		//Fee             string     `protobuf:"bytes,5,opt,name=fee,proto3" json:"fee,omitempty"`
-		//Status          TxStatus   `protobuf:"varint,6,opt,name=status,proto3,enum=dapplink.account.TxStatus" json:"status,omitempty"`
-		//Type            int32      `protobuf:"varint,8,opt,name=type,proto3" json:"type,omitempty"`
-		//Height          string     `protobuf:"bytes,9,opt,name=height,proto3" json:"height,omitempty"`
-		//ContractAddress string     `protobuf:"bytes,10,opt,name=contract_address,json=contractAddress,proto3" json:"contract_address,omitempty"`
-		//Datetime        string     `protobuf:"bytes,11,opt,name=datetime,proto3" json:"datetime,omitempty"`
-		//Data            string     `protobuf:"bytes,12,opt,name=data,proto3" json:"data,omitempty"`
 		Hash:  req.Hash,
 		Index: 0,
 		Froms: []*account.Address{{

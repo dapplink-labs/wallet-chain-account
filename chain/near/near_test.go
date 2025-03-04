@@ -26,51 +26,6 @@ func setup() (chain.IChainAdaptor, error) {
 	return adaptor, nil
 }
 
-//
-//func TestChainAdaptor_ConvertAddress(t *testing.T) {
-//	adaptor, err := setup()
-//	if err != nil {
-//		return
-//	}
-//
-//	// test account
-//	// privateKey: 861ae7df240f80e5492065dafeb6444bdbf2d55d01e1797d2abe0db0afd4f917
-//	// publicKey: 02410c64fcd262512683b54576440e3d3033d825ef9f753b44c51ccdd70a7e90c3
-//	resp, err := adaptor.ConvertAddress(&account.ConvertAddressRequest{
-//		Chain:     ChainName,
-//		Network:   "mainnet",
-//		PublicKey: "048318535b54105d4a7aae60c08fc45f9687181b4fdfc625bd1a753fa7397fed753547f11ca8696646f2f3acb08e31016afac23e630c5d11f59f61fef57b0d2aa5",
-//	})
-//	if err != nil {
-//		t.Error("convert address failed:", err)
-//		return
-//	}
-//
-//	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
-//	fmt.Println(resp.Address)
-//
-//	respJson, _ := json.Marshal(resp)
-//	t.Logf("响应: %s", respJson)
-//}
-//
-//func TestChainAdaptor_ValidAddress(t *testing.T) {
-//	adaptor, err := setup()
-//	if err != nil {
-//		return
-//	}
-//
-//	resp, err := adaptor.ValidAddress(&account.ValidAddressRequest{
-//		Chain:   ChainName,
-//		Network: "mainnet",
-//		Address: "0x8358d847Fc823097380c4996A3D3485D9D86941f",
-//	})
-//	if err != nil {
-//		t.Error("valid address failed:", err)
-//		return
-//	}
-//	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
-//}
-
 func TestChainAdaptor_GetBlockHeaderByNumber(t *testing.T) {
 	adaptor, err := setup()
 	if err != nil {
@@ -310,6 +265,24 @@ func TestChainAdaptor_CreateUnSignTransaction(t *testing.T) {
 		return
 	}
 
+	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
+	fmt.Println(resp)
+}
+
+func TestChainAdaptor_GetTxByAddress(t *testing.T) {
+	adaptor, err := setup()
+	if err != nil {
+		return
+	}
+	sendTxRequest := &account.TxAddressRequest{
+		Chain:   ChainName,
+		Address: "20b9bdf32f768ac6e6ff3c9ab512d4bd7f94dbcf4e9d15bb8cd3c3b4062d585a",
+	}
+	resp, err := adaptor.GetTxByAddress(sendTxRequest)
+	if err != nil {
+		t.Error("create unsigned transaction failed:", err)
+		return
+	}
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
 	fmt.Println(resp)
 }
