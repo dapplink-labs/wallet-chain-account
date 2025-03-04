@@ -20,11 +20,11 @@ const (
 	rosettaChainNetwork = "00000000000000020101"
 )
 
-type IcpClient struct {
+type Client struct {
 	apiClient *client.APIClient
 }
 
-func (c *IcpClient) GetAccountBalance(address string) (*types.AccountBalanceResponse, error) {
+func (c *Client) GetAccountBalance(address string) (*types.AccountBalanceResponse, error) {
 	balance, _, err := c.apiClient.AccountAPI.AccountBalance(context.Background(), &types.AccountBalanceRequest{
 		NetworkIdentifier: &types.NetworkIdentifier{
 			Blockchain: rosettaChainName,
@@ -41,9 +41,77 @@ func (c *IcpClient) GetAccountBalance(address string) (*types.AccountBalanceResp
 	return balance, nil
 }
 
-func NewIcpClient(ctx context.Context, rpcUrl string, timeOut uint64) (*IcpClient, error) {
+func (c *Client) GetBlockByNumber(number int64) (*types.BlockResponse, error) {
+	block, _, err := c.apiClient.BlockAPI.Block(context.Background(), &types.BlockRequest{
+		NetworkIdentifier: &types.NetworkIdentifier{
+			Blockchain: rosettaChainName,
+			Network:    rosettaChainNetwork,
+		},
+		BlockIdentifier: &types.PartialBlockIdentifier{
+			Index: &number,
+		},
+	})
+	if err != nil {
+		log.Error("get block err", "err", err)
+		panic(err)
+	}
+	return block, nil
+}
+
+func (c *Client) GetBlockByHash(hash string) (*types.BlockResponse, error) {
+	block, _, err := c.apiClient.BlockAPI.Block(context.Background(), &types.BlockRequest{
+		NetworkIdentifier: &types.NetworkIdentifier{
+			Blockchain: rosettaChainName,
+			Network:    rosettaChainNetwork,
+		},
+		BlockIdentifier: &types.PartialBlockIdentifier{
+			Hash: &hash,
+		},
+	})
+	if err != nil {
+		log.Error("get block err", "err", err)
+		panic(err)
+	}
+	return block, nil
+}
+
+func (c *Client) GetTxByHash(hash string) (*types.SearchTransactionsResponse, error) {
+	tx, _, err := c.apiClient.SearchAPI.SearchTransactions(context.Background(), &types.SearchTransactionsRequest{
+		NetworkIdentifier: &types.NetworkIdentifier{
+			Blockchain: rosettaChainName,
+			Network:    rosettaChainNetwork,
+		},
+		TransactionIdentifier: &types.TransactionIdentifier{
+			Hash: hash,
+		},
+	})
+	if err != nil {
+		log.Error("get tx err", "err", err)
+		panic(err)
+	}
+	return tx, nil
+}
+
+func (c *Client) GetTxByAddress(address string) (*types.SearchTransactionsResponse, error) {
+	tx, _, err := c.apiClient.SearchAPI.SearchTransactions(context.Background(), &types.SearchTransactionsRequest{
+		NetworkIdentifier: &types.NetworkIdentifier{
+			Blockchain: rosettaChainName,
+			Network:    rosettaChainNetwork,
+		},
+		AccountIdentifier: &types.AccountIdentifier{
+			Address: address,
+		},
+	})
+	if err != nil {
+		log.Error("get tx err", "err", err)
+		panic(err)
+	}
+	return tx, nil
+}
+
+func NewIcpClient(ctx context.Context, rpcUrl string, timeOut uint64) (*Client, error) {
 	bOff := retry.Exponential()
-	icpClient, err := retry.Do(ctx, defaultDialAttempts, bOff, func() (*IcpClient, error) {
+	icpClient, err := retry.Do(ctx, defaultDialAttempts, bOff, func() (*Client, error) {
 		if !helpers.IsURLAvailable(rpcUrl) {
 			return nil, fmt.Errorf("address unavailable (%s)", rpcUrl)
 		}
@@ -52,7 +120,7 @@ func NewIcpClient(ctx context.Context, rpcUrl string, timeOut uint64) (*IcpClien
 		})
 
 		apiClient := client.NewAPIClient(configuration)
-		return &IcpClient{
+		return &Client{
 			apiClient: apiClient,
 		}, nil
 	})
