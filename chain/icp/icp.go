@@ -7,6 +7,7 @@ import (
 	"github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/common"
 	"github.com/ethereum/go-ethereum/log"
+	"math"
 	"strconv"
 	"strings"
 
@@ -270,7 +271,9 @@ func convertTransactionToTxMessage(transaction *types.BlockTransaction) (*accoun
 	var valueList []*account.Value
 	for _, operation := range transaction.Transaction.Operations {
 		if strings.EqualFold(operation.Type, "FEE") {
-			fee = operation.Amount.Value
+			intValue, _ := strconv.ParseFloat(operation.Amount.Value, 64)
+			floatValue := math.Abs(intValue)
+			fee = strconv.FormatFloat(floatValue, 'f', 0, 64)
 		} else if strings.EqualFold(operation.Type, "TRANSACTION") {
 			amount, _ := strconv.Atoi(operation.Amount.Value)
 			if amount > 0 {
