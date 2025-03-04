@@ -6,6 +6,7 @@ import (
 	"github.com/dapplink-labs/wallet-chain-account/chain/binance"
 	"github.com/dapplink-labs/wallet-chain-account/chain/linea"
 	"github.com/dapplink-labs/wallet-chain-account/chain/mantle"
+	"github.com/dapplink-labs/wallet-chain-account/chain/near"
 	"github.com/dapplink-labs/wallet-chain-account/chain/optimism"
 	"github.com/dapplink-labs/wallet-chain-account/chain/polygon"
 	"github.com/dapplink-labs/wallet-chain-account/chain/scroll"
@@ -62,6 +63,7 @@ func New(conf *config.Config) (*ChainDispatcher, error) {
 		optimism.ChainName: optimism.NewChainAdaptor,
 		linea.ChainName:    linea.NewChainAdaptor,
 		scroll.ChainName:   scroll.NewChainAdaptor,
+		near.ChainName:     near.NewNearAdaptor,
 	}
 
 	supportedChains := []string{
@@ -79,6 +81,7 @@ func New(conf *config.Config) (*ChainDispatcher, error) {
 		optimism.ChainName,
 		linea.ChainName,
 		scroll.ChainName,
+		near.ChainName,
 	}
 
 	for _, c := range conf.Chains {
