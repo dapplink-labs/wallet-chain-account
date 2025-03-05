@@ -3,7 +3,7 @@ server:
 
 network: mainnet
 
-chains: [Ethereum, Solana, Tron, Aptos, Sui, Arbitrum,BscChain,Mantle ,Optimism,Linea,Scroll,Polygon]
+chains: [Ethereum, Solana, Tron, Aptos, Sui, Arbitrum,BscChain,Mantle ,Optimism,Linea,Scroll,Polygon,Xlm]
 
 wallet_node:
   eth:
@@ -56,6 +56,15 @@ wallet_node:
     rpc_user: ''
     rpc_pass: ''
     data_api_url: 'https://toncenter.com/api/v3'
+    data_api_key: ''
+    data_api_token: ''
+    time_out: 15
+
+  xlm:
+    rpc_url: 'https://thrilling-shy-sky.stellar-mainnet.quiknode.pro/d47047130637d0acb7029b8d21ae7ac4fb24bdd0'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: 'https://horizon.stellar.org'
     data_api_key: ''
     data_api_token: ''
     time_out: 15
