@@ -6,7 +6,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	common2 "github.com/dapplink-labs/wallet-chain-account/rpc/common"
+	"github.com/mr-tron/base58"
+	"github.com/status-im/keycard-go/hexutils"
+	"strings"
+
 	"github.com/eteu-technologies/borsh-go"
 	uint128 "github.com/eteu-technologies/golang-uint128"
 	nearClient "github.com/eteu-technologies/near-api-go/pkg/client"
@@ -22,6 +25,7 @@ import (
 	"github.com/dapplink-labs/wallet-chain-account/chain"
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
+	common2 "github.com/dapplink-labs/wallet-chain-account/rpc/common"
 )
 
 const ChainName = "Near"
@@ -76,8 +80,18 @@ func (n *NearAdaptor) BuildSignedTransaction(req *account.SignedTransactionReque
 
 // ConvertAddress implements chain.IChainAdaptor.
 func (n *NearAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account.ConvertAddressResponse, error) {
-	// 用户可以自定义地址，这个方法无用
-	panic("unimplemented")
+	publicKey := req.PublicKey
+	publicKeyPure := strings.Replace(publicKey, "ed25519:", "", -1)
+	address, err := base58.Decode(publicKeyPure)
+	hex := hexutils.BytesToHex(address)
+	if err != nil {
+		log.Error(err.Error())
+	}
+	return &account.ConvertAddressResponse{
+		Code:    common2.ReturnCode_SUCCESS,
+		Msg:     "convert address success",
+		Address: hex,
+	}, nil
 }
 
 // CreateUnSignTransaction implements chain.IChainAdaptor.
@@ -104,11 +118,11 @@ func (n *NearAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequ
 	_, transactionData, err := n.PrepareTransaction(ctx, nearTransaction.Sender, nearTransaction.Receiver, actions)
 
 	// 3.Serialize into Borsh
-	_, serialized, err := transactionData.Hash()
+	hash, _, err := transactionData.Hash()
 	return &account.UnSignTransactionResponse{
 		Code:     common2.ReturnCode_SUCCESS,
 		Msg:      "create un sign transaction success",
-		UnSignTx: string(serialized),
+		UnSignTx: hash.String(),
 	}, nil
 }
 
@@ -553,6 +567,7 @@ func (n *NearAdaptor) ValidAddress(req *account.ValidAddressRequest) (*account.V
 
 // VerifySignedTransaction implements chain.IChainAdaptor.
 func (n *NearAdaptor) VerifySignedTransaction(req *account.VerifyTransactionRequest) (*account.VerifyTransactionResponse, error) {
+
 	return &account.VerifyTransactionResponse{
 		Code:   common2.ReturnCode_SUCCESS,
 		Msg:    "verify tx success",

@@ -1,8 +1,9 @@
 package near
 
 import (
-	"github.com/dapplink-labs/wallet-chain-account/config"
 	nearClient "github.com/eteu-technologies/near-api-go/pkg/client"
+
+	"github.com/dapplink-labs/wallet-chain-account/config"
 )
 
 func NewNearClient(conf *config.Config) (*nearClient.Client, error) {

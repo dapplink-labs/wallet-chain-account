@@ -2,14 +2,15 @@ package near
 
 import (
 	"encoding/json"
-	"fmt"
+	"testing"
+
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/test-go/testify/assert"
+
 	"github.com/dapplink-labs/wallet-chain-account/chain"
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/common"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/test-go/testify/assert"
-	"testing"
 )
 
 func setup() (chain.IChainAdaptor, error) {
@@ -43,7 +44,8 @@ func TestChainAdaptor_GetBlockHeaderByNumber(t *testing.T) {
 	}
 
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
-	fmt.Println(resp.BlockHeader)
+	t.Logf("响应: %s", resp.BlockHeader)
+
 }
 
 func TestChainAdaptor_GetBlockHeaderByHash(t *testing.T) {
@@ -63,7 +65,7 @@ func TestChainAdaptor_GetBlockHeaderByHash(t *testing.T) {
 	}
 
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
-	fmt.Println(resp.BlockHeader)
+	t.Logf("响应: %s", resp.BlockHeader)
 }
 
 func TestChainAdaptor_GetBlockByNumber(t *testing.T) {
@@ -83,7 +85,7 @@ func TestChainAdaptor_GetBlockByNumber(t *testing.T) {
 	}
 
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
-	fmt.Println(resp.Transactions)
+
 }
 
 func TestChainAdaptor_GetBlockByHash(t *testing.T) {
@@ -103,7 +105,7 @@ func TestChainAdaptor_GetBlockByHash(t *testing.T) {
 	}
 
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
-	fmt.Println(resp.Transactions)
+	t.Logf("响应: %s", resp.Transactions)
 }
 
 func TestChainAdaptor_GetAccount(t *testing.T) {
@@ -145,30 +147,10 @@ func TestChainAdaptor_GetFee(t *testing.T) {
 	}
 
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
-
 	respJson, _ := json.Marshal(resp)
 	t.Logf("响应: %s", respJson)
-}
 
-//func TestChainAdaptor_GetTxByAddress(t *testing.T) {
-//	adaptor, err := setup()
-//	if err != nil {
-//		return
-//	}
-//
-//	resp, err := adaptor.GetTxByAddress(&account.TxAddressRequest{
-//		Chain:   ChainName,
-//		Network: "mainnet",
-//		Address: "20b9bdf32f768ac6e6ff3c9ab512d4bd7f94dbcf4e9d15bb8cd3c3b4062d585a",
-//	})
-//	if err != nil {
-//		t.Error("get transaction by address failed:", err)
-//		return
-//	}
-//
-//	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
-//	fmt.Println(resp.Tx)
-//}
+}
 
 func TestChainAdaptor_GetTxByHash(t *testing.T) {
 	adaptor, err := setup()
@@ -188,7 +170,8 @@ func TestChainAdaptor_GetTxByHash(t *testing.T) {
 	}
 
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
-	fmt.Println(resp.Tx)
+	t.Logf("响应: %s", resp.Tx)
+
 }
 
 func TestChainAdaptor_GetBlockByRange(t *testing.T) {
@@ -209,7 +192,8 @@ func TestChainAdaptor_GetBlockByRange(t *testing.T) {
 	}
 
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
-	fmt.Println(resp.GetBlockHeader())
+	t.Logf("响应: %s", resp.GetBlockHeader())
+
 }
 
 func TestChainAdaptor_SendTx(t *testing.T) {
@@ -227,8 +211,9 @@ func TestChainAdaptor_SendTx(t *testing.T) {
 		t.Error("get block by range failed:", err)
 		return
 	}
-
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
+	t.Logf("响应: %s", resp.GetTxHash())
+
 }
 
 func TestChainAdaptor_BuildSignedTransaction(t *testing.T) {
@@ -247,7 +232,7 @@ func TestChainAdaptor_BuildSignedTransaction(t *testing.T) {
 	}
 
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
-	fmt.Println(resp)
+	t.Logf("响应: %s", resp.GetSignedTx())
 }
 
 func TestChainAdaptor_CreateUnSignTransaction(t *testing.T) {
@@ -266,7 +251,7 @@ func TestChainAdaptor_CreateUnSignTransaction(t *testing.T) {
 	}
 
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
-	fmt.Println(resp)
+	t.Logf("响应: %s", resp.GetUnSignTx())
 }
 
 func TestChainAdaptor_GetTxByAddress(t *testing.T) {
@@ -284,5 +269,23 @@ func TestChainAdaptor_GetTxByAddress(t *testing.T) {
 		return
 	}
 	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
-	fmt.Println(resp)
+	t.Logf("响应: %s", resp.GetTx())
+}
+
+func TestChainAdaptor_ConvertAddress(t *testing.T) {
+	adaptor, err := setup()
+	if err != nil {
+		return
+	}
+	sendTxRequest := &account.ConvertAddressRequest{
+		Chain:     ChainName,
+		PublicKey: "ed25519:3CkKR2ej2ZXEQh7tY8bkVkVqi2zkt31svaA3Mj3v3pnm",
+	}
+	resp, err := adaptor.ConvertAddress(sendTxRequest)
+	if err != nil {
+		t.Error("create unsigned transaction failed:", err)
+		return
+	}
+	assert.Equal(t, common.ReturnCode_SUCCESS, resp.Code)
+	t.Logf("响应: %s", resp.Address)
 }

@@ -823,3 +823,62 @@ grpcurl -plaintext -d '{
   "fast_fee": ""
 }
 ```
+
+## 10.BuildSignedTransaction
+
+- request
+```
+grpcurl -plaintext -d '{
+  "chain": "Near",
+  "base64Tx": "ewogICJwcml2YXRlX2tleSI6ICJlZDI1NTE5OnlwWEo1YngyVDNzUXUxZXd3anVhNHphOHp1QXRnUnl1dEhKVHRocVJpUHlpZWJrQVRYcFl5Mkt3amRMcERjOFFnYlJRdXRydXlxb2FVcFU1d0VyZ2V3YiIsCiAgImFjY291bnRfaWQiOiAiMjBiOWJkZjMyZjc2OGFjNmU2ZmYzYzlhYjUxMmQ0YmQ3Zjk0ZGJjZjRlOWQxNWJiOGNkM2MzYjQwNjJkNTg1YSIsCiAgInJlY2VpdmVyX2lkIjogInJlY2VpdmVyLnRlc3RuZXQiLAogICJhbW91bnQiOiAiMTAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsCiAgInB1YmxpY19rZXkiOiAiZWQyNTUxOTozQ2tLUjJlajJaWEVRaDd0WThia1ZrVnFpMnprdDMxc3ZhQTNNajN2M3BubSIKfQ=="
+}' 127.0.0.1:8189 dapplink.account.WalletAccountService.buildSignedTransaction
+```
+
+- response
+```
+{
+  "code": "SUCCESS",
+  "msg": "build transaction success",
+  "signed_tx": "QAAAADIwYjliZGYzMmY3NjhhYzZlNmZmM2M5YWI1MTJkNGJkN2Y5NGRiY2Y0ZTlkMTViYjhjZDNjM2I0MDYyZDU4NWEAILm98y92isbm/zyatRLUvX+U289OnRW7jNPDtAYtWFpHvQnBZ38AABAAAAByZWNlaXZlci50ZXN0bmV0Z/WKOF8GIxVZuV1Zf5TGE51WZHUWcRyACRTuSdVFb7oBAAAAA///////////AAAAAAAAAAAAI/gyOkDKheXHa891m8UMIklbWuyBbTA6oNNaZa9ArYP/nUx9ReMG8WAZF2PCu0+sELlb0Wyg8sddPRTr62wcBQ=="
+}
+```
+
+
+## 11.CreateUnSignTransaction
+
+- request
+```
+grpcurl -plaintext -d '{
+  "chain": "Near",
+  "base64Tx": "ewogICJwcml2YXRlX2tleSI6ICJlZDI1NTE5OnlwWEo1YngyVDNzUXUxZXd3anVhNHphOHp1QXRnUnl1dEhKVHRocVJpUHlpZWJrQVRYcFl5Mkt3amRMcERjOFFnYlJRdXRydXlxb2FVcFU1d0VyZ2V3YiIsCiAgImFjY291bnRfaWQiOiAiMjBiOWJkZjMyZjc2OGFjNmU2ZmYzYzlhYjUxMmQ0YmQ3Zjk0ZGJjZjRlOWQxNWJiOGNkM2MzYjQwNjJkNTg1YSIsCiAgInJlY2VpdmVyX2lkIjogInJlY2VpdmVyLnRlc3RuZXQiLAogICJhbW91bnQiOiAiMTAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsCiAgInB1YmxpY19rZXkiOiAiZWQyNTUxOTozQ2tLUjJlajJaWEVRaDd0WThia1ZrVnFpMnprdDMxc3ZhQTNNajN2M3BubSIKfQ=="
+}' 127.0.0.1:8189 dapplink.account.WalletAccountService.createUnSignTransaction
+```
+
+- response
+```
+{
+  "code": "SUCCESS",
+  "msg": "create un sign transaction success",
+  "un_sign_tx": "4o27FMicrzLAg1NV6wgX12v6nE54LrbmUy67YrdqcqzP"
+}
+```
+
+## 12.ConvertAddress
+
+- request
+```
+grpcurl -plaintext -d '{
+  "chain": "Near",
+  "publicKey": "ed25519:3CkKR2ej2ZXEQh7tY8bkVkVqi2zkt31svaA3Mj3v3pnm"
+}' 127.0.0.1:8189 dapplink.account.WalletAccountService.convertAddress
+```
+
+- response
+```
+{
+  "code": "SUCCESS",
+  "msg": "convert address success",
+  "address": "20B9BDF32F768AC6E6FF3C9AB512D4BD7F94DBCF4E9D15BB8CD3C3B4062D585A"
+}
+```
+
