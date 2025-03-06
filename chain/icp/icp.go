@@ -329,8 +329,12 @@ func (c ChainAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.Extr
 }
 
 func convertTransactionToTxMessage(transaction *types.BlockTransaction) (*account.TxMessage, error) {
-	height := transaction.BlockIdentifier.Index
+	index := transaction.BlockIdentifier.Index
 	hash := transaction.BlockIdentifier.Hash
+	timestamp := transaction.Transaction.Metadata["timestamp"]
+	memo := transaction.Transaction.Metadata["memo"]
+	height := transaction.Transaction.Metadata["block_height"]
+
 	var fee string
 	var fromAddrs []*account.Address
 	var toAddrs []*account.Address
@@ -351,15 +355,16 @@ func convertTransactionToTxMessage(transaction *types.BlockTransaction) (*accoun
 		}
 	}
 	return &account.TxMessage{
-		Hash:   hash,
-		Index:  uint32(height),
-		Froms:  fromAddrs,
-		Tos:    toAddrs,
-		Values: valueList,
-		Fee:    fee,
-		Status: account.TxStatus_Success,
-		Type:   0,
-		Height: strconv.FormatInt(height, 10),
+		Hash:     hash,
+		Index:    uint32(index),
+		Froms:    fromAddrs,
+		Tos:      toAddrs,
+		Values:   valueList,
+		Fee:      fee,
+		Status:   account.TxStatus_Success,
+		Height:   strconv.Itoa(int(height.(float64))),
+		Data:     strconv.Itoa(int(memo.(float64))),
+		Datetime: strconv.Itoa(int(timestamp.(float64))),
 	}, nil
 }
 

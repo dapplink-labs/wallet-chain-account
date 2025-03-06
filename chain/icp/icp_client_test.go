@@ -148,6 +148,21 @@ func TestChainAdaptor_GetTxByAddress(t *testing.T) {
 	log.Info("transaction by address:", rsp)
 }
 
+func TestChainAdaptor_GetTxByHash(t *testing.T) {
+	adaptor, err := setup()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rsp, err := adaptor.GetTxByHash(&account.TxHashRequest{
+		Chain: ChainName,
+		Hash:  "e9ed7def415a8c323953f578c9ce0decf0031cb5b2a1f88cf6f1d89af80ed43a",
+	})
+	if err != nil {
+		t.Error(err)
+	}
+	log.Info("transaction by hash:", rsp)
+}
+
 func TestChainAdaptor_BuildUnSignTx(t *testing.T) {
 
 	base64Tx := createTestBase64Tx("", "e9ed7def415a8c323953f578c9ce0decf0031cb5b2a1f88cf6f1d89af80ed43a", "e9ed7def415a8c323953f578c9ce0decf0031cb5b2a1f88cf6f1d89af80ed43a", "100000")
