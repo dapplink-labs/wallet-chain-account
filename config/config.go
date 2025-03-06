@@ -42,6 +42,7 @@ type WalletNode struct {
 	Sui     Node `yaml:"sui"`
 	Ton     Node `yaml:"ton"`
 	Icp     Node `yaml:"icp"`
+	Btt     Node `yaml:"btt"`
 }
 
 type Config struct {
