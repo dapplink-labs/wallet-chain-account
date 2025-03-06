@@ -2,20 +2,20 @@ package icp
 
 import (
 	"context"
-	"encoding/hex"
+	"encoding/base64"
 	"encoding/json"
-	"github.com/coinbase/rosetta-sdk-go/types"
-	"github.com/dapplink-labs/wallet-chain-account/rpc/common"
-	"github.com/ethereum/go-ethereum/log"
 	"math"
 	"strconv"
 	"strings"
 
-	"github.com/aviate-labs/agent-go/principal"
+	"github.com/coinbase/rosetta-sdk-go/types"
+	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/dapplink-labs/wallet-chain-account/chain"
+	"github.com/dapplink-labs/wallet-chain-account/chain/evmbase"
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
+	"github.com/dapplink-labs/wallet-chain-account/rpc/common"
 	common2 "github.com/dapplink-labs/wallet-chain-account/rpc/common"
 )
 
@@ -42,6 +42,13 @@ func NewChainAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
 }
 
 func (c ChainAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*account.SupportChainsResponse, error) {
+	if req.GetChain() != ChainName {
+		return &account.SupportChainsResponse{
+			Code:    common2.ReturnCode_ERROR,
+			Msg:     "not support this chain",
+			Support: false,
+		}, nil
+	}
 	return &account.SupportChainsResponse{
 		Code:    common.ReturnCode_SUCCESS,
 		Msg:     "Support this chain",
@@ -50,30 +57,37 @@ func (c ChainAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*acco
 }
 
 func (c ChainAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account.ConvertAddressResponse, error) {
-	publicKeyBytes, _ := hex.DecodeString(req.PublicKey)
-	p := principal.NewSelfAuthenticating(publicKeyBytes)
-	a := principal.NewAccountID(p, DefaultSubaccount)
+	derive, err := c.icpClient.DeriveAddressByPublicKey(req.GetPublicKey())
+	if err != nil {
+		return &account.ConvertAddressResponse{
+			Code: common2.ReturnCode_ERROR,
+			Msg:  "convert address failed",
+		}, nil
+	}
+	address := derive.AccountIdentifier.Address
 	return &account.ConvertAddressResponse{
-		Code: common2.ReturnCode_SUCCESS, Msg: "convert address success",
-		Address: a.String(),
+		Code:    common2.ReturnCode_SUCCESS,
+		Msg:     "convert address success",
+		Address: address,
 	}, nil
 }
 
 func (c ChainAdaptor) ValidAddress(req *account.ValidAddressRequest) (*account.ValidAddressResponse, error) {
-	_, err := principal.DecodeAccountID(req.Address)
-	if err != nil {
+	isValid, err := c.icpClient.ValidAddress(req.GetAddress())
+	if err != nil || !isValid {
 		return &account.ValidAddressResponse{
 			Code:  common2.ReturnCode_ERROR,
 			Msg:   "invalid address",
 			Valid: false,
 		}, nil
-	} else {
-		return &account.ValidAddressResponse{
-			Code:  common2.ReturnCode_SUCCESS,
-			Msg:   "valid address",
-			Valid: true,
-		}, nil
 	}
+
+	return &account.ValidAddressResponse{
+		Code:  common2.ReturnCode_SUCCESS,
+		Msg:   "valid address",
+		Valid: true,
+	}, nil
+
 }
 
 func (c ChainAdaptor) GetBlockByNumber(req *account.BlockNumberRequest) (*account.BlockResponse, error) {
@@ -89,15 +103,16 @@ func (c ChainAdaptor) GetBlockByNumber(req *account.BlockNumberRequest) (*accoun
 	hash := block.Block.BlockIdentifier.Hash
 	var blockTxList []*account.BlockInfoTransactionList
 	for _, tx := range block.Block.Transactions {
-		blockTransactionList, _ := convertBlockTransactionToBlockTransactionList(tx)
+		blockTransactionList, _ := convertBlockTransactionToBlockTransactionList(tx, uint64(height))
 		blockTxList = append(blockTxList, blockTransactionList)
 	}
 	return &account.BlockResponse{
-		Code:    common2.ReturnCode_SUCCESS,
-		Msg:     "get block success",
-		Height:  height,
-		Hash:    hash,
-		BaseFee: "10000",
+		Code:         common2.ReturnCode_SUCCESS,
+		Msg:          "get block success",
+		Height:       height,
+		Hash:         hash,
+		BaseFee:      "10000",
+		Transactions: blockTxList,
 	}, nil
 }
 
@@ -114,15 +129,16 @@ func (c ChainAdaptor) GetBlockByHash(req *account.BlockHashRequest) (*account.Bl
 	hash := block.Block.BlockIdentifier.Hash
 	var blockTxList []*account.BlockInfoTransactionList
 	for _, tx := range block.Block.Transactions {
-		blockTransactionList, _ := convertBlockTransactionToBlockTransactionList(tx)
+		blockTransactionList, _ := convertBlockTransactionToBlockTransactionList(tx, uint64(height))
 		blockTxList = append(blockTxList, blockTransactionList)
 	}
 	return &account.BlockResponse{
-		Code:    common2.ReturnCode_SUCCESS,
-		Msg:     "get block success",
-		Height:  height,
-		Hash:    hash,
-		BaseFee: "10000",
+		Code:         common2.ReturnCode_SUCCESS,
+		Msg:          "get block success",
+		Height:       height,
+		Hash:         hash,
+		BaseFee:      "10000",
+		Transactions: blockTxList,
 	}, nil
 }
 
@@ -233,13 +249,63 @@ func (c ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashRe
 }
 
 func (c ChainAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*account.BlockByRangeResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	startIndex, _ := strconv.Atoi(req.Start)
+	endIndex, _ := strconv.Atoi(req.End)
+	var blockHeaderList []*account.BlockHeader
+	for i := 0; i < endIndex-startIndex; i++ {
+		block, err := c.icpClient.GetBlockByNumber(int64(startIndex + i))
+		if err != nil {
+			log.Error("get tx err", "err", err)
+			return &account.BlockByRangeResponse{
+				Code: common2.ReturnCode_ERROR,
+				Msg:  "Get tx err",
+			}, err
+		}
+		index := strconv.FormatInt(block.Block.BlockIdentifier.Index, 64)
+		blockHeader := &account.BlockHeader{
+			Hash:       block.Block.BlockIdentifier.Hash,
+			ParentHash: block.Block.ParentBlockIdentifier.Hash,
+			Number:     index,
+		}
+		blockHeaderList = append(blockHeaderList, blockHeader)
+	}
+	return &account.BlockByRangeResponse{
+		Code:        common2.ReturnCode_SUCCESS,
+		Msg:         "get blockByRange success",
+		BlockHeader: blockHeaderList,
+	}, nil
 }
 
 func (c ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	bytes, err := base64.StdEncoding.DecodeString(req.GetBase64Tx())
+	if err != nil {
+		log.Error("get tx err", "err", err)
+		return &account.UnSignTransactionResponse{
+			Code: common2.ReturnCode_ERROR,
+			Msg:  "create unSign tx err",
+		}, err
+	}
+	var dynamicFeeTx evmbase.Eip1559DynamicFeeTx
+	if err := json.Unmarshal(bytes, &dynamicFeeTx); err != nil {
+		log.Error("parse json fail", "err", err)
+		return &account.UnSignTransactionResponse{
+			Code: common2.ReturnCode_ERROR,
+			Msg:  "create unSign tx err",
+		}, err
+	}
+	unSignTx, err := c.icpClient.BuildUnsignedTransaction(dynamicFeeTx.FromAddress, dynamicFeeTx.ToAddress, dynamicFeeTx.Amount)
+	if err != nil {
+		log.Error("get tx err", "err", err)
+		return &account.UnSignTransactionResponse{
+			Code: common2.ReturnCode_ERROR,
+			Msg:  "create unSign tx err",
+		}, err
+	}
+	return &account.UnSignTransactionResponse{
+		Code:     common2.ReturnCode_SUCCESS,
+		Msg:      "get txByHash success",
+		UnSignTx: unSignTx,
+	}, nil
 }
 
 func (c ChainAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequest) (*account.SignedTransactionResponse, error) {
@@ -297,6 +363,26 @@ func convertTransactionToTxMessage(transaction *types.BlockTransaction) (*accoun
 	}, nil
 }
 
-func convertBlockTransactionToBlockTransactionList(transaction *types.Transaction) (*account.BlockInfoTransactionList, error) {
-	return nil, nil
+func convertBlockTransactionToBlockTransactionList(transaction *types.Transaction, height uint64) (*account.BlockInfoTransactionList, error) {
+	var from string
+	var to string
+	var value string
+	for _, operation := range transaction.Operations {
+		if strings.EqualFold(operation.Type, "TRANSACTION") {
+			amount, _ := strconv.Atoi(operation.Amount.Value)
+			if amount > 0 {
+				to = operation.Account.Address
+				value = operation.Amount.Value
+			} else if amount < 0 {
+				from = operation.Account.Address
+			}
+		}
+	}
+	return &account.BlockInfoTransactionList{
+		From:   from,
+		To:     to,
+		Hash:   transaction.TransactionIdentifier.Hash,
+		Height: height,
+		Amount: value,
+	}, nil
 }
