@@ -147,3 +147,12 @@ wallet_node:
     data_api_key: 'HZEZGEPJJDA633N421AYW9NE8JFNZZC7JT'
     data_api_token: ''
     time_out: 15
+
+  flow:
+    rpc_url: 'access.mainnet.nodes.onflow.org:9000'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: 'https://rest-mainnet.onflow.org/v1/'
+    data_api_key: ''
+    data_api_token: ''
+    time_out: 15
