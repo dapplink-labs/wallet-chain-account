@@ -1,6 +1,7 @@
 package xlm
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/dapplink-labs/wallet-chain-account/chain"
@@ -169,6 +170,75 @@ func TestChainAdaptor_GetTransactionByHash(t *testing.T) {
 	fmt.Println(string(jsExpression))
 }
 
+func TestChainAdaptor_CreateUnSignTransaction(t *testing.T) {
+	adaptor, err := setup()
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	// 创建请求数据
+	addrFrom := "GDYDI34YZQCP7WU726B626KTJIE6COPSXMWL2VLR7KNRHMNB6HLNFUJB"
+	addrTo := "GD6ARGMYT65UUC7FQDBK77GXMEONL44BL7E5G4WL2NDWMJ7NSWBUBYQQ"
+	sequenceFrom := 239763383908302853
+	amount := "0.123"
+
+	requestData := RequestCreateUnsignTransaction{
+		AddrFrom:     addrFrom,
+		AddrTo:       addrTo,
+		SequenceFrom: int64(sequenceFrom),
+		Amount:       amount,
+	}
+
+	jsonBytes, err := json.Marshal(requestData)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	base64Encoded := base64.StdEncoding.EncodeToString(jsonBytes)
+	fmt.Println("json: ", base64Encoded)
+	// eyJhZGRyRnJvbSI6IkdEWURJMzRZWlFDUDdXVTcyNkI2MjZLVEpJRTZDT1BTWE1XTDJWTFI3S05SSE1OQjZITE5GVUpCIiwiYWRkclRvIjoiR0Q2QVJHTVlUNjVVVUM3RlFEQks3N0dYTUVPTkw0NEJMN0U1RzRXTDJORFdNSjdOU1dCVUJZUVEiLCJzZXF1ZW5jZUZyb20iOjIzOTc2MzM4MzkwODMwMjg1MywiYW1vdW50IjoiMC4xMjMifQ==
+
+	rsp, err := adaptor.CreateUnSignTransaction(&account.UnSignTransactionRequest{
+		Chain:    ChainName,
+		Network:  "mainnet",
+		Base64Tx: base64Encoded,
+	})
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	jsExpression, _ := json.MarshalIndent(rsp, "", "    ")
+	fmt.Println(string(jsExpression))
+
+	// AAAAAgAAAADwNG+YzAT/2p/Xg+15U0oJ4Tnyuyy9VXH6mxOxofHW0gAAAGQDU8+HAAAABgAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAABAAAAAPA0b5jMBP/an9eD7XlTSgnhOfK7LL1VcfqbE7Gh8dbSAAAAAQAAAAD8CJmYn7tKC+WAwq/812Ec1fOBX8nTcsvTR2Yn7ZWDQAAAAAAAAAAAABLEsAAAAAAAAAAA
+	// 成功后，把“未签名的交易值” 放入 "标准签名机"，返回出"待发送的交易值"
+	// 签名机代码，我就不开放了。
+}
+
+func TestChainAdaptor_BuildSignedTransaction(t *testing.T) {
+	adaptor, err := setup()
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	rsp, err := adaptor.BuildSignedTransaction(&account.SignedTransactionRequest{
+		Chain:     ChainName,
+		Network:   "mainnet",
+		Base64Tx:  "AAAAAgAAAADwNG+YzAT/2p/Xg+15U0oJ4Tnyuyy9VXH6mxOxofHW0gAAAGQDU8+HAAAABQAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAABAAAAAPA0b5jMBP/an9eD7XlTSgnhOfK7LL1VcfqbE7Gh8dbSAAAAAQAAAAD8CJmYn7tKC+WAwq/812Ec1fOBX8nTcsvTR2Yn7ZWDQAAAAAAAAAAAABLEsAAAAAAAAAAA",
+		Signature: "oCFwF8LbKGTC3CpMy+W+eMQbJm4zLouG2oJOY0geHGi/LZnYCgemuNL85IySg48frjRF3VRPT5gPtwv5LuvtBA==",
+		PublicKey: "GDYDI34YZQCP7WU726B626KTJIE6COPSXMWL2VLR7KNRHMNB6HLNFUJB",
+	})
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	jsExpression, _ := json.MarshalIndent(rsp, "", "    ")
+	fmt.Println(string(jsExpression))
+}
+
 func TestChainAdaptor_SendTx(t *testing.T) {
 	adaptor, err := setup()
 	if err != nil {
@@ -176,8 +246,7 @@ func TestChainAdaptor_SendTx(t *testing.T) {
 		return
 	}
 
-	// 就不构建交易了，测试项目构建一笔，拿到这里来
-	sendRawValue := "AAAAAgAAAAAyQpSFuI2kOZ+AUCooTtscvbaz2Z0ahbL85knGAoDxdwAAAGQAEyKQAAAAAwAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAABAAAAADJClIW4jaQ5n4BQKihO2xy9trPZnRqFsvzmScYCgPF3AAAAAQAAAAAMEVFY7uijL1jbeT6If7G72cl2DOevB6xkbATCD/L4cAAAAAAAAAAAByfRUAAAAAAAAAABAoDxdwAAAEDzeLuHFx4p3MFhNh/YbD5qwfws/BsfLz9kBr7zMYr8h+TeV6kTXrd7rxKcxK8D/JxUapOtjKPdPLQOYJQ3PzQM"
+	sendRawValue := "AAAAAgAAAADwNG+YzAT/2p/Xg+15U0oJ4Tnyuyy9VXH6mxOxofHW0gAAAGQDU8+HAAAABQAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAABAAAAAPA0b5jMBP/an9eD7XlTSgnhOfK7LL1VcfqbE7Gh8dbSAAAAAQAAAAD8CJmYn7tKC+WAwq/812Ec1fOBX8nTcsvTR2Yn7ZWDQAAAAAAAAAAAABLEsAAAAAAAAAABofHW0gAAAECgIXAXwtsoZMLcKkzL5b54xBsmbjMui4bagk5jSB4caL8tmdgKB6a40vzkjJKDjx+uNEXdVE9PmA+3C/ku6+0E"
 
 	rsp, err := adaptor.SendTx(&account.SendTxRequest{
 		Chain:   ChainName,

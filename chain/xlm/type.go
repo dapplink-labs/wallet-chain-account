@@ -165,3 +165,12 @@ type ResponseSendTransaction struct {
 		LatestLedgerCloseTime string `json:"latestLedgerCloseTime"`
 	} `json:"result"`
 }
+
+////////////////////////////////////////////////////////////////////
+
+type RequestCreateUnsignTransaction struct {
+	AddrFrom     string `json:"addrFrom"`
+	AddrTo       string `json:"addrTo"`
+	SequenceFrom int64  `json:"sequenceFrom"`
+	Amount       string `json:"amount"`
+}

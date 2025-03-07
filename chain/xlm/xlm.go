@@ -149,7 +149,7 @@ func (c *ChainAdaptor) GetBlockHeaderByHash(req *account.BlockHeaderHashRequest)
 func (c *ChainAdaptor) SendTx(req *account.SendTxRequest) (*account.SendTxResponse, error) {
 	resp, err := c.xlmClient.SendTx(req.RawTx)
 	if err != nil {
-		log.Error("GetBlockHeaderByHash fail:", err)
+		log.Error("SendTx fail:", err)
 		return &account.SendTxResponse{
 			Code: common.ReturnCode_ERROR,
 			Msg:  err.Error(),
@@ -160,17 +160,29 @@ func (c *ChainAdaptor) SendTx(req *account.SendTxRequest) (*account.SendTxRespon
 }
 
 func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
-	return &account.UnSignTransactionResponse{
-		Code: common.ReturnCode_SUCCESS,
-		Msg:  "Do not support this rpc interface",
-	}, nil
+	resp, err := c.xlmClient.CreateUnsignTransaction(req)
+	if err != nil {
+		log.Error("CreateUnSignTransaction fail:", err)
+		return &account.UnSignTransactionResponse{
+			Code: common.ReturnCode_ERROR,
+			Msg:  err.Error(),
+		}, err
+	}
+
+	return resp, err
 }
 
 func (c *ChainAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequest) (*account.SignedTransactionResponse, error) {
-	return &account.SignedTransactionResponse{
-		Code: common.ReturnCode_SUCCESS,
-		Msg:  "Do not support this rpc interface",
-	}, nil
+	resp, err := c.xlmClient.SignedTransaction(req)
+	if err != nil {
+		log.Error("BuildSignedTransaction fail:", err)
+		return &account.SignedTransactionResponse{
+			Code: common.ReturnCode_ERROR,
+			Msg:  err.Error(),
+		}, err
+	}
+
+	return resp, err
 }
 
 func (c *ChainAdaptor) DecodeTransaction(req *account.DecodeTransactionRequest) (*account.DecodeTransactionResponse, error) {

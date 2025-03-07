@@ -2,12 +2,15 @@ package xlm
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/common"
+	"github.com/stellar/go/network"
 	"github.com/stellar/go/strkey"
+	"github.com/stellar/go/txnbuild"
 	"io"
 	"log"
 	"math/big"
@@ -307,6 +310,141 @@ func (xc *XlmClient) GetTransactionByHash(txHash string) (*account.TxHashRespons
 		Code: common.ReturnCode_SUCCESS,
 		Msg:  "GetTransactionByHash Success",
 		Tx:   tx,
+	}, nil
+}
+
+func (xc *XlmClient) CreateUnsignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
+	decodedBytes, err := base64.StdEncoding.DecodeString(req.Base64Tx)
+	if err != nil {
+		log.Fatalf("CreateUnsignTransaction Failed %v", err)
+		return &account.UnSignTransactionResponse{
+			Code: common.ReturnCode_ERROR,
+			Msg:  "CreateUnsignTransaction Failed",
+		}, nil
+	}
+
+	// 将 JSON 字节数组反序列化为结构体
+	var decodedTx RequestCreateUnsignTransaction
+	err = json.Unmarshal(decodedBytes, &decodedTx)
+	if err != nil {
+		log.Fatalf("CreateUnsignTransaction Failed %v", err)
+		return &account.UnSignTransactionResponse{
+			Code: common.ReturnCode_ERROR,
+			Msg:  "CreateUnsignTransaction Failed",
+		}, nil
+	}
+
+	// 开始构建交易
+	myOperate := txnbuild.Payment{
+		SourceAccount: decodedTx.AddrFrom,
+		Destination:   decodedTx.AddrTo,
+		Amount:        decodedTx.Amount,
+		Asset:         txnbuild.NativeAsset{},
+	}
+
+	tx, err := txnbuild.NewTransaction(
+		txnbuild.TransactionParams{
+			SourceAccount: &txnbuild.SimpleAccount{
+				AccountID: decodedTx.AddrFrom,
+				Sequence:  int64(decodedTx.SequenceFrom),
+			},
+			IncrementSequenceNum: true,
+			Operations:           []txnbuild.Operation{&myOperate},
+			BaseFee:              txnbuild.MinBaseFee,
+			Preconditions:        txnbuild.Preconditions{TimeBounds: txnbuild.NewInfiniteTimeout()}, // Use a real timeout in production!
+		},
+	)
+	if err != nil {
+		log.Fatalf("CreateUnsignTransaction Failed %v", err)
+		return &account.UnSignTransactionResponse{
+			Code: common.ReturnCode_ERROR,
+			Msg:  "CreateUnsignTransaction Failed",
+		}, nil
+	}
+
+	base64_tx, err := tx.Base64()
+	if err != nil {
+		log.Fatalf("CreateUnsignTransaction Failed %v", err)
+		return &account.UnSignTransactionResponse{
+			Code: common.ReturnCode_ERROR,
+			Msg:  "CreateUnsignTransaction Failed",
+		}, nil
+	}
+
+	return &account.UnSignTransactionResponse{
+		Code:     common.ReturnCode_SUCCESS,
+		Msg:      "CreateUnsignTransaction Success",
+		UnSignTx: base64_tx,
+	}, nil
+}
+
+func (xc *XlmClient) SignedTransaction(req *account.SignedTransactionRequest) (*account.SignedTransactionResponse, error) {
+	tx_Generic_UnSign, err := txnbuild.TransactionFromXDR(req.Base64Tx)
+	if err != nil {
+		log.Fatalf("SignedTransaction: %v", err)
+		return &account.SignedTransactionResponse{
+			Code: common.ReturnCode_ERROR,
+			Msg:  "SignedTransaction Failed",
+		}, nil
+	}
+
+	tx_UnSign, success := tx_Generic_UnSign.Transaction()
+	if success != true {
+		return &account.SignedTransactionResponse{
+			Code: common.ReturnCode_ERROR,
+			Msg:  "SignedTransaction Failed",
+		}, nil
+	}
+
+	if tx_UnSign.SourceAccount().AccountID != req.PublicKey {
+		return &account.SignedTransactionResponse{
+			Code: common.ReturnCode_ERROR,
+			Msg:  "SignedTransaction Failed",
+		}, nil
+	}
+
+	tx_UnSign_New, err := txnbuild.NewTransaction(
+		txnbuild.TransactionParams{
+			SourceAccount: &txnbuild.SimpleAccount{
+				AccountID: tx_UnSign.SourceAccount().AccountID,
+				Sequence:  tx_UnSign.SequenceNumber() - 1,
+			},
+			IncrementSequenceNum: true,
+			Operations:           tx_UnSign.Operations(),
+			BaseFee:              tx_UnSign.BaseFee(),
+			Preconditions:        txnbuild.Preconditions{TimeBounds: tx_UnSign.Timebounds()},
+		},
+	)
+	if err != nil {
+		log.Fatalf("SignedTransaction: %v", err)
+		return &account.SignedTransactionResponse{
+			Code: common.ReturnCode_ERROR,
+			Msg:  "SignedTransaction Failed",
+		}, nil
+	}
+
+	tx_UnSign_New, err = tx_UnSign_New.AddSignatureBase64(network.PublicNetworkPassphrase, req.PublicKey, req.Signature)
+	if err != nil {
+		log.Fatalf("SignedTransaction: %v", err)
+		return &account.SignedTransactionResponse{
+			Code: common.ReturnCode_ERROR,
+			Msg:  "SignedTransaction Failed",
+		}, nil
+	}
+
+	base64_AfterSign, err := tx_UnSign_New.Base64()
+	if err != nil {
+		log.Fatalf("SignedTransaction: %v", err)
+		return &account.SignedTransactionResponse{
+			Code: common.ReturnCode_ERROR,
+			Msg:  "SignedTransaction Failed",
+		}, nil
+	}
+
+	return &account.SignedTransactionResponse{
+		Code:     common.ReturnCode_SUCCESS,
+		Msg:      "SignedTransaction Success",
+		SignedTx: base64_AfterSign,
 	}, nil
 }
 
