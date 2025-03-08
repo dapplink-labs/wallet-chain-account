@@ -358,11 +358,11 @@ func (c *ChainAdaptor) GetTxByAddress(req *account.TxAddressRequest) (*account.T
 		for i := 0; i < len(txs); i++ {
 			list = append(list, &account.TxMessage{
 				Hash:   txs[i].TxId,
-				Tos:    []*account.Address{{Address: txs[i].To}},
-				Froms:  []*account.Address{{Address: txs[i].From}},
-				Fee:    txs[i].TxFee,
+				To:     txs[i].To,
+				From:   txs[i].From,
+				Fee:    txs[i].TxId,
 				Status: account.TxStatus_Success,
-				Values: []*account.Value{{Value: txs[i].Amount}},
+				Value:  txs[i].Amount,
 				Type:   1,
 				Height: txs[i].Height,
 			})
@@ -424,12 +424,6 @@ func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashR
 		beforeTokenAddress = common.Address{}.String()
 		beforeValue = tx.Value()
 	}
-	var fromAddrs []*account.Address
-	var toAddrs []*account.Address
-	var valueList []*account.Value
-	fromAddrs = append(fromAddrs, &account.Address{Address: ""})
-	toAddrs = append(toAddrs, &account.Address{Address: beforeToAddress})
-	valueList = append(valueList, &account.Value{Value: beforeValue.String()})
 	var txStatus account.TxStatus
 	if receipt.Status == 1 {
 		txStatus = account.TxStatus_Success
@@ -442,9 +436,9 @@ func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashR
 		Tx: &account.TxMessage{
 			Hash:            tx.Hash().Hex(),
 			Index:           uint32(receipt.TransactionIndex),
-			Froms:           fromAddrs,
-			Tos:             toAddrs,
-			Values:          valueList,
+			From:            "",
+			To:              beforeToAddress,
+			Value:           beforeValue.String(),
 			Fee:             tx.GasFeeCap().String(),
 			Status:          txStatus,
 			Type:            0,
@@ -515,7 +509,7 @@ func (c *ChainAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*accou
 	}, nil
 }
 
-func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
+func (c *ChainAdaptor) BuildUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
 	response := &account.UnSignTransactionResponse{
 		Code: common2.ReturnCode_ERROR,
 	}
@@ -525,7 +519,7 @@ func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionReq
 		return nil, err
 	}
 
-	log.Info("ethereum CreateUnSignTransaction", "dFeeTx", util.ToJSONString(dFeeTx))
+	log.Info("ethereum BuildUnSignTransaction", "dFeeTx", util.ToJSONString(dFeeTx))
 
 	// Create unsigned transaction
 	rawTx, err := evmbase.CreateEip1559UnSignTx(dFeeTx, dFeeTx.ChainID)
@@ -535,7 +529,7 @@ func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionReq
 		return response, nil
 	}
 
-	log.Info("ethereum CreateUnSignTransaction", "rawTx", rawTx)
+	log.Info("ethereum BuildUnSignTransaction", "rawTx", rawTx)
 	response.Code = common2.ReturnCode_SUCCESS
 	response.Msg = "create un sign tx success"
 	response.UnSignTx = rawTx
@@ -620,6 +614,10 @@ func (c *ChainAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.Ext
 		Msg:   "get extra data success",
 		Value: "not data",
 	}, nil
+}
+
+func (c *ChainAdaptor) GetNftListByAddress(req *account.NftAddressRequest) (*account.NftAddressResponse, error) {
+	panic("implement me")
 }
 
 // buildDynamicFeeTx 构建动态费用交易的公共方法

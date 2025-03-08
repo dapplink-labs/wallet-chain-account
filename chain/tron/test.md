@@ -1052,12 +1052,12 @@ grpcurl -plaintext -d '{
 grpcurl -plaintext -d '{
   "chain": "Tron",
   "base64Tx": "ewoJImZyb21fYWRkcmVzcyI6ICJUSDM2SzVWUjJGNkR4ZWZ6dHU5QTNMTmFKc2RqeUdSRGJpIiwKCSJ0b19hZGRyZXNzIjogIlRCaVNrZEZUUTJmQzg4dWczaExXb1ZITThGakRwOHF5RDIiLAoJInZhbHVlIjogMQp9"
-}' 127.0.0.1:8189 dapplink.account.WalletAccountService.createUnSignTransaction
+}' 127.0.0.1:8189 dapplink.account.WalletAccountService.BuildUnSignTransaction
 
 grpcurl -plaintext -d '{
   "chain": "Tron",
   "base64Tx": "ewoJImZyb21fYWRkcmVzcyI6ICJUSDM2SzVWUjJGNkR4ZWZ6dHU5QTNMTmFKc2RqeUdSRGJpIiwKCSJ0b19hZGRyZXNzIjogIlRCaVNrZEZUUTJmQzg4dWczaExXb1ZITThGakRwOHF5RDIiLAoJImNvbnRyYWN0X2FkZHJlc3MiOiAiVFI3TkhxamVLUXhHVENpOHE4Wlk0cEw4b3RTemdqTGo2dCIsCgkidmFsdWUiOiAxCn0="
-}' 127.0.0.1:8189 dapplink.account.WalletAccountService.createUnSignTransaction
+}' 127.0.0.1:8189 dapplink.account.WalletAccountService.BuildUnSignTransaction
 ```
 - response
 

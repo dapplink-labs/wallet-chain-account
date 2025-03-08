@@ -675,8 +675,8 @@ func TestChainAdaptor_GetTxByAddress(t *testing.T) {
 				assert.NotEmpty(t, tx.Fee, "Transaction fee should not be empty")
 				assert.NotEmpty(t, tx.Datetime, "Transaction datetime should not be empty")
 
-				assert.NotEmpty(t, tx.Froms, "From addresses should not be empty")
-				assert.Equal(t, validAddress, tx.Froms[0].Address)
+				assert.Equal(t, tx.From, "From addresses should not be empty")
+				assert.Equal(t, validAddress, tx.From)
 
 				assert.Contains(t, []account.TxStatus{
 					account.TxStatus_Success,

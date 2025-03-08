@@ -414,11 +414,11 @@ func (c *ChainAdaptor) GetTxByAddress(req *account.TxAddressRequest) (*account.T
 		for i := 0; i < len(txs); i++ {
 			list = append(list, &account.TxMessage{
 				Hash:   txs[i].TxId,
-				Tos:    []*account.Address{{Address: txs[i].To}},
-				Froms:  []*account.Address{{Address: txs[i].From}},
+				To:     txs[i].To,
+				From:   txs[i].From,
 				Fee:    txs[i].TxId,
 				Status: account.TxStatus_Success,
-				Values: []*account.Value{{Value: txs[i].Amount}},
+				Value:  txs[i].Amount,
 				Type:   1,
 				Height: txs[i].Height,
 			})
@@ -500,18 +500,12 @@ func buildTxMessage(txResult *TransactionResult) (*account.TxMessage, error) {
 	} else {
 		tx.Status = account.TxStatus_Success
 	}
-
 	if txResult.BlockTime != nil {
 		tx.Datetime = time.Unix(*txResult.BlockTime, 0).Format(time.RFC3339)
 	}
-
-	tx.Froms = []*account.Address{{
-		Address: txResult.Transaction.Message.AccountKeys[0],
-	}}
-
-	tx.Tos = make([]*account.Address, 0)
-	tx.Values = make([]*account.Value, 0)
-
+	tx.From = txResult.Transaction.Message.AccountKeys[0]
+	tx.To = ""
+	tx.Value = strconv.Itoa(0)
 	if err := processInstructions(txResult, tx); err != nil {
 		return nil, fmt.Errorf("failed to process instructions: %w", err)
 	}
@@ -542,7 +536,7 @@ func processInstructions(txResult *TransactionResult, tx *account.TxMessage) err
 		}
 
 		toAddr := txResult.Transaction.Message.AccountKeys[toIndex]
-		tx.Tos = append(tx.Tos, &account.Address{Address: toAddr})
+		tx.To = toAddr
 
 		if err := calculateAmount(txResult, toIndex, tx); err != nil {
 			log.Warn("Failed to calculate amount", "error", err)
@@ -559,9 +553,7 @@ func calculateAmount(txResult *TransactionResult, toIndex int, tx *account.TxMes
 	}
 
 	amount := txResult.Meta.PostBalances[toIndex] - txResult.Meta.PreBalances[toIndex]
-	tx.Values = append(tx.Values, &account.Value{
-		Value: strconv.FormatUint(amount, 10),
-	})
+	tx.Value = strconv.FormatUint(amount, 10)
 
 	return nil
 }
@@ -725,7 +717,7 @@ func organizeTransactionsByBlock(txResults []*TransactionResult) ([]*account.Blo
 	return blocks, nil
 }
 
-func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
+func (c *ChainAdaptor) BuildUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
 	// Decode the base64 transaction string
 	jsonBytes, err := base64.StdEncoding.DecodeString(req.Base64Tx)
 	if err != nil {
@@ -1050,6 +1042,11 @@ func (c *ChainAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.Ext
 	//TODO implement me
 	panic("implement me")
 }
+
+func (c *ChainAdaptor) GetNftListByAddress(req *account.NftAddressRequest) (*account.NftAddressResponse, error) {
+	panic("implement me")
+}
+
 func isSOLTransfer(coinAddress string) bool {
 
 	return coinAddress == "" ||

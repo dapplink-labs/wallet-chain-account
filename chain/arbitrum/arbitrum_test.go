@@ -226,7 +226,7 @@ func TestChainAdaptor_GetAccount(t *testing.T) {
 
 }
 
-func TestChainAdaptor_CreateUnSignTransaction(t *testing.T) {
+func TestChainAdaptor_BuildUnSignTransaction(t *testing.T) {
 	adaptor, err := setup()
 	if err != nil {
 		t.Fatal(err)
@@ -234,7 +234,7 @@ func TestChainAdaptor_CreateUnSignTransaction(t *testing.T) {
 
 	baseTx := createTestBase64Tx("", 0, "", "")
 
-	rsp, err := adaptor.CreateUnSignTransaction(&account.UnSignTransactionRequest{
+	rsp, err := adaptor.BuildUnSignTransaction(&account.UnSignTransactionRequest{
 		Chain:    ChainName,
 		Base64Tx: baseTx,
 	})
@@ -342,7 +342,7 @@ func TestChainAdaptor_SendTx2(t *testing.T) {
 		t.Fatal(err)
 	}
 	baseTx := createTestBase64Tx("", limit, maxFeePerGas.String(), maxPriorityFeePerGas.String())
-	rsp0, err := adaptor.CreateUnSignTransaction(&account.UnSignTransactionRequest{
+	rsp0, err := adaptor.BuildUnSignTransaction(&account.UnSignTransactionRequest{
 		Chain:    ChainName,
 		Base64Tx: baseTx,
 	})

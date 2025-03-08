@@ -545,7 +545,7 @@ grpcurl -plaintext -d '{
   "chain": "Ethereum",
   "network": "mainnet",
   "base64Tx": "ewogICAibm9uY2UiOjYsCiAgICJmcm9tX2FkZHJlc3MiOiIweGU5MDBBMjVhODI1ZjQ0YzM4OWRhODRCMDU4RkMxQjBkMjBjMTg1QWYiLAogICAidG9fYWRkcmVzcyI6IjB4NzJmRmFBMjg5OTkzYmNhRGEyRTAxNjEyOTk1RTVjNzVkRDgxY2RCQyIsCiAgICJnYXMiOjkxMDAwLAogICAidmFsdWUiOiIxMDAwMDAwMDAwMDAwMDAwMDAwMCIsCiAgICJnYXNfcHJpY2UiOiIxOTUwMDAwMDAwMDAiLAogICAiZ2FzX3RpcF9jYXAiOiIzMjc5OTMxNTAzMjgiLAogICAiZ2FzX2ZlZV9jYXAiOiIzMjc5OTMxNTAzMiIsCiAgICJjaGFpbklkIjoiMSIsCiAgICJ0b2tlbkFkZHJlc3MiOiIweDAwIgp9"
-}' 127.0.0.1:8189 dapplink.account.WalletAccountService.createUnSignTransaction
+}' 127.0.0.1:8189 dapplink.account.WalletAccountService.BuildUnSignTransaction
 ```
 
 - response
