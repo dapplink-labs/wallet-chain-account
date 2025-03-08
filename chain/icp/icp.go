@@ -23,8 +23,6 @@ const (
 	ChainName = "ICP"
 )
 
-var DefaultSubaccount = [32]byte{}
-
 type ChainAdaptor struct {
 	icpClient *Client
 }
@@ -42,6 +40,13 @@ func NewChainAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
 }
 
 func (c ChainAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*account.SupportChainsResponse, error) {
+	isWorded, err := c.icpClient.DetectiveRosettaNode()
+	if err != nil {
+		return &account.SupportChainsResponse{
+			Code: common2.ReturnCode_ERROR,
+			Msg:  "node error failed",
+		}, nil
+	}
 	if req.GetChain() != ChainName {
 		return &account.SupportChainsResponse{
 			Code:    common2.ReturnCode_ERROR,
@@ -52,19 +57,18 @@ func (c ChainAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*acco
 	return &account.SupportChainsResponse{
 		Code:    common.ReturnCode_SUCCESS,
 		Msg:     "Support this chain",
-		Support: true,
+		Support: isWorded,
 	}, nil
 }
 
 func (c ChainAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account.ConvertAddressResponse, error) {
-	derive, err := c.icpClient.DeriveAddressByPublicKey(req.GetPublicKey())
+	address, err := c.icpClient.GenerateAddressByPublicKey(req.GetPublicKey())
 	if err != nil {
 		return &account.ConvertAddressResponse{
 			Code: common2.ReturnCode_ERROR,
 			Msg:  "convert address failed",
 		}, nil
 	}
-	address := derive.AccountIdentifier.Address
 	return &account.ConvertAddressResponse{
 		Code:    common2.ReturnCode_SUCCESS,
 		Msg:     "convert address success",
@@ -276,7 +280,7 @@ func (c ChainAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*accoun
 	}, nil
 }
 
-func (c ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
+func (c ChainAdaptor) BuildUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
 	bytes, err := base64.StdEncoding.DecodeString(req.GetBase64Tx())
 	if err != nil {
 		log.Error("get tx err", "err", err)
@@ -328,6 +332,11 @@ func (c ChainAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.Extr
 	panic("implement me")
 }
 
+func (c ChainAdaptor) GetNftListByAddress(req *account.NftAddressRequest) (*account.NftAddressResponse, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func convertTransactionToTxMessage(transaction *types.BlockTransaction) (*account.TxMessage, error) {
 	index := transaction.BlockIdentifier.Index
 	hash := transaction.BlockIdentifier.Hash
@@ -336,9 +345,9 @@ func convertTransactionToTxMessage(transaction *types.BlockTransaction) (*accoun
 	height := transaction.Transaction.Metadata["block_height"]
 
 	var fee string
-	var fromAddrs []*account.Address
-	var toAddrs []*account.Address
-	var valueList []*account.Value
+	var from string
+	var to string
+	var value string
 	for _, operation := range transaction.Transaction.Operations {
 		if strings.EqualFold(operation.Type, "FEE") {
 			intValue, _ := strconv.ParseFloat(operation.Amount.Value, 64)
@@ -347,19 +356,19 @@ func convertTransactionToTxMessage(transaction *types.BlockTransaction) (*accoun
 		} else if strings.EqualFold(operation.Type, "TRANSACTION") {
 			amount, _ := strconv.Atoi(operation.Amount.Value)
 			if amount > 0 {
-				toAddrs = append(toAddrs, &account.Address{Address: operation.Account.Address})
-				valueList = append(valueList, &account.Value{Value: operation.Amount.Value})
+				to = operation.Account.Address
+				value = operation.Amount.Value
 			} else if amount < 0 {
-				fromAddrs = append(fromAddrs, &account.Address{Address: operation.Account.Address})
+				from = operation.Account.Address
 			}
 		}
 	}
 	return &account.TxMessage{
 		Hash:     hash,
 		Index:    uint32(index),
-		Froms:    fromAddrs,
-		Tos:      toAddrs,
-		Values:   valueList,
+		From:     from,
+		To:       to,
+		Value:    value,
 		Fee:      fee,
 		Status:   account.TxStatus_Success,
 		Height:   strconv.Itoa(int(height.(float64))),

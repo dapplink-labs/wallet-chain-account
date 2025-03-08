@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/aviate-labs/agent-go/identity"
 	"net/http"
 	"time"
 
@@ -23,27 +24,49 @@ const (
 	rosettaChainNetwork = "00000000000000020101"
 )
 
+var (
+	networkIdentifiers *types.NetworkIdentifier
+	DefaultSubAccount  [32]byte
+)
+
 type Client struct {
 	apiClient *client.APIClient
+}
+
+func (c *Client) DetectiveRosettaNode() (bool, error) {
+	_, _, err := c.apiClient.NetworkAPI.NetworkStatus(context.Background(), &types.NetworkRequest{
+		NetworkIdentifier: networkIdentifiers,
+	})
+	return true, err
 }
 
 func (c *Client) DeriveAddressByPublicKey(publicKey string) (*types.ConstructionDeriveResponse, error) {
 	publicKeyBytes, _ := hex.DecodeString(publicKey)
 	derive, _, err := c.apiClient.ConstructionAPI.ConstructionDerive(context.Background(), &types.ConstructionDeriveRequest{
-		NetworkIdentifier: &types.NetworkIdentifier{
-			Blockchain: rosettaChainName,
-			Network:    rosettaChainNetwork,
-		},
+		NetworkIdentifier: networkIdentifiers,
 		PublicKey: &types.PublicKey{
 			Bytes:     publicKeyBytes,
 			CurveType: types.Edwards25519,
 		},
 	})
+	return derive, err
+}
+
+func (c *Client) GenerateAddressByPublicKey(publicKey string) (string, error) {
+	publicKeyBytes, err := hex.DecodeString(publicKey)
 	if err != nil {
-		log.Error("get balance err", "err", err)
+		log.Error("generate err", "err", err)
 		panic(err)
 	}
-	return derive, nil
+	ed25519Identity, err := identity.NewEd25519Identity(publicKeyBytes, nil)
+	if err != nil {
+		log.Error("generate err", "err", err)
+		panic(err)
+	}
+	selfAuthPrincipal := principal.NewSelfAuthenticating(ed25519Identity.PublicKey())
+	accountID := principal.NewAccountID(selfAuthPrincipal, DefaultSubAccount)
+	return accountID.Encode(), nil
+
 }
 
 func (c *Client) ValidAddress(address string) (bool, error) {
@@ -57,10 +80,7 @@ func (c *Client) ValidAddress(address string) (bool, error) {
 
 func (c *Client) GetAccountBalance(address string) (*types.AccountBalanceResponse, error) {
 	balance, _, err := c.apiClient.AccountAPI.AccountBalance(context.Background(), &types.AccountBalanceRequest{
-		NetworkIdentifier: &types.NetworkIdentifier{
-			Blockchain: rosettaChainName,
-			Network:    rosettaChainNetwork,
-		},
+		NetworkIdentifier: networkIdentifiers,
 		AccountIdentifier: &types.AccountIdentifier{
 			Address: address,
 		},
@@ -74,10 +94,7 @@ func (c *Client) GetAccountBalance(address string) (*types.AccountBalanceRespons
 
 func (c *Client) GetBlockByNumber(number int64) (*types.BlockResponse, error) {
 	block, _, err := c.apiClient.BlockAPI.Block(context.Background(), &types.BlockRequest{
-		NetworkIdentifier: &types.NetworkIdentifier{
-			Blockchain: rosettaChainName,
-			Network:    rosettaChainNetwork,
-		},
+		NetworkIdentifier: networkIdentifiers,
 		BlockIdentifier: &types.PartialBlockIdentifier{
 			Index: &number,
 		},
@@ -91,10 +108,7 @@ func (c *Client) GetBlockByNumber(number int64) (*types.BlockResponse, error) {
 
 func (c *Client) GetBlockByHash(hash string) (*types.BlockResponse, error) {
 	block, _, err := c.apiClient.BlockAPI.Block(context.Background(), &types.BlockRequest{
-		NetworkIdentifier: &types.NetworkIdentifier{
-			Blockchain: rosettaChainName,
-			Network:    rosettaChainNetwork,
-		},
+		NetworkIdentifier: networkIdentifiers,
 		BlockIdentifier: &types.PartialBlockIdentifier{
 			Hash: &hash,
 		},
@@ -108,10 +122,7 @@ func (c *Client) GetBlockByHash(hash string) (*types.BlockResponse, error) {
 
 func (c *Client) GetTxByHash(hash string) (*types.SearchTransactionsResponse, error) {
 	tx, _, err := c.apiClient.SearchAPI.SearchTransactions(context.Background(), &types.SearchTransactionsRequest{
-		NetworkIdentifier: &types.NetworkIdentifier{
-			Blockchain: rosettaChainName,
-			Network:    rosettaChainNetwork,
-		},
+		NetworkIdentifier: networkIdentifiers,
 		TransactionIdentifier: &types.TransactionIdentifier{
 			Hash: hash,
 		},
@@ -125,10 +136,7 @@ func (c *Client) GetTxByHash(hash string) (*types.SearchTransactionsResponse, er
 
 func (c *Client) GetTxByAddress(address string) (*types.SearchTransactionsResponse, error) {
 	tx, _, err := c.apiClient.SearchAPI.SearchTransactions(context.Background(), &types.SearchTransactionsRequest{
-		NetworkIdentifier: &types.NetworkIdentifier{
-			Blockchain: rosettaChainName,
-			Network:    rosettaChainNetwork,
-		},
+		NetworkIdentifier: networkIdentifiers,
 		AccountIdentifier: &types.AccountIdentifier{
 			Address: address,
 		},
@@ -217,10 +225,15 @@ func NewIcpClient(ctx context.Context, rpcUrl string, timeOut uint64) (*Client, 
 			apiClient: apiClient,
 		}, nil
 	})
-
 	if err != nil {
 		log.Error("New icp client failed:", err)
 		return nil, err
 	}
+	list, _, err := icpClient.apiClient.NetworkAPI.NetworkList(ctx, &types.MetadataRequest{})
+	if err != nil {
+		log.Error("New icp client failed:", err)
+		return nil, err
+	}
+	networkIdentifiers = list.NetworkIdentifiers[0]
 	return icpClient, nil
 }

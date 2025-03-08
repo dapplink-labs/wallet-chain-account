@@ -48,7 +48,7 @@ func TestChainAdaptor_ConvertAddress(t *testing.T) {
 	}
 	rsp, err := adaptor.ConvertAddress(&account.ConvertAddressRequest{
 		Chain:     ChainName,
-		PublicKey: "0fa600b893e92a45b4ccaa843cfd3031779db68888c2316194573e33bc5cdcbd",
+		PublicKey: "ab51a3b2dbc7c123ac8e93873611358fff297ea67ca9472125ba54af79c025e4",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -63,7 +63,7 @@ func TestChainAdaptor_ValidAddress(t *testing.T) {
 	}
 	rsp, err := adaptor.ValidAddress(&account.ValidAddressRequest{
 		Chain:   ChainName,
-		Address: "0884925276fa22115eb70d9c6601bc316e7f8a38b2ec4123c119a0d7664dc1ca",
+		Address: "9ca25295843f8a11bcfb2cff56a2ed236d91aafa96c1584cf9befdf6a3e96c69",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -139,8 +139,7 @@ func TestChainAdaptor_GetTxByAddress(t *testing.T) {
 	}
 	rsp, err := adaptor.GetTxByAddress(&account.TxAddressRequest{
 		Chain:   ChainName,
-		Address: "e9ed7def415a8c323953f578c9ce0decf0031cb5b2a1f88cf6f1d89af80ed43a",
-		//ContractAddress: "0x1Bdd8878252DaddD3Af2ba30628813271294eDc0",
+		Address: "9ca25295843f8a11bcfb2cff56a2ed236d91aafa96c1584cf9befdf6a3e96c69",
 	})
 	if err != nil {
 		t.Error(err)
@@ -155,7 +154,7 @@ func TestChainAdaptor_GetTxByHash(t *testing.T) {
 	}
 	rsp, err := adaptor.GetTxByHash(&account.TxHashRequest{
 		Chain: ChainName,
-		Hash:  "e9ed7def415a8c323953f578c9ce0decf0031cb5b2a1f88cf6f1d89af80ed43a",
+		Hash:  "f840978ecb382b415d6fd4ee9260a8c6ce09cdf10948eb595faea38fa6e41f0d",
 	})
 	if err != nil {
 		t.Error(err)
@@ -170,7 +169,7 @@ func TestChainAdaptor_BuildUnSignTx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rsp, err := adaptor.CreateUnSignTransaction(&account.UnSignTransactionRequest{
+	rsp, err := adaptor.BuildUnSignTransaction(&account.UnSignTransactionRequest{
 		Chain:    ChainName,
 		Base64Tx: base64Tx,
 	})

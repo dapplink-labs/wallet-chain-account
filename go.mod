@@ -142,7 +142,7 @@ require (
 	github.com/zondax/hid v0.9.2 // indirect
 	github.com/zondax/ledger-go v0.14.3 // indirect
 	go.etcd.io/bbolt v1.4.0-alpha.0.0.20240404170359-43604f3112c5 // indirect
-	go.uber.org/multierr v1.10.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240404231335-c0f41cb1a7a0 // indirect
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
@@ -150,7 +150,7 @@ require (
 	golang.org/x/term v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
-	google.golang.org/genproto v0.0.0-20240227224415-6ceb2ff114de // indirect
+	google.golang.org/genproto v0.0.0-20240528184218-531527333157 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240814211410-ddb44dafa142 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
@@ -165,7 +165,6 @@ require (
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/coinbase/rosetta-sdk-go v0.8.8
 	github.com/coinbase/rosetta-sdk-go/types v1.0.0
-	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/cometbft/cometbft v0.38.13
 	github.com/cosmos/btcutil v1.0.5
 	github.com/gagliardetto/solana-go v1.11.0
@@ -174,7 +173,7 @@ require (
 )
 
 require (
-	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
+	github.com/aviate-labs/secp256k1 v0.0.0-5e6736a // indirect
 	github.com/stellar/go-xdr v0.0.0-20231122183749-b53fb00bcac2 // indirect
 )
 
@@ -232,4 +231,4 @@ require (
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
-replace nhooyr.io/websocket v1.8.6 => ../websocket
+//replace nhooyr.io/websocket v1.8.6 => ../websocket
