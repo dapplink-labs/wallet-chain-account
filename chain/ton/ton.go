@@ -206,7 +206,7 @@ func (c *ChainAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*accou
 	}, nil
 }
 
-func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
+func (c *ChainAdaptor) BuildUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
 	return &account.UnSignTransactionResponse{
 		Code: common.ReturnCode_SUCCESS,
 		Msg:  "Do not support this rpc interface",
@@ -240,4 +240,8 @@ func (c *ChainAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.Ext
 		Msg:   "Do not support this api",
 		Value: req.Chain,
 	}, nil
+}
+
+func (c *ChainAdaptor) GetNftListByAddress(req *account.NftAddressRequest) (*account.NftAddressResponse, error) {
+	panic("implement me")
 }

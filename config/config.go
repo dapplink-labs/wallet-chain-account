@@ -41,6 +41,7 @@ type WalletNode struct {
 	Linea   Node `yaml:"linea"`
 	Sui     Node `yaml:"sui"`
 	Ton     Node `yaml:"ton"`
+	Xlm     Node `yaml:"xlm"`
 	Icp     Node `yaml:"icp"`
 	Btt     Node `yaml:"btt"`
 }

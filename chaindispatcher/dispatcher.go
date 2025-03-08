@@ -27,6 +27,7 @@ import (
 	"github.com/dapplink-labs/wallet-chain-account/chain/sui"
 	"github.com/dapplink-labs/wallet-chain-account/chain/ton"
 	"github.com/dapplink-labs/wallet-chain-account/chain/tron"
+	"github.com/dapplink-labs/wallet-chain-account/chain/xlm"
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/common"
@@ -64,6 +65,7 @@ func New(conf *config.Config) (*ChainDispatcher, error) {
 		optimism.ChainName: optimism.NewChainAdaptor,
 		linea.ChainName:    linea.NewChainAdaptor,
 		scroll.ChainName:   scroll.NewChainAdaptor,
+		xlm.ChainName:      xlm.NewChainAdaptor,
 		icp.ChainName:      icp.NewChainAdaptor,
 		btt.ChainName:      btt.NewChainAdaptor,
 	}
@@ -84,6 +86,7 @@ func New(conf *config.Config) (*ChainDispatcher, error) {
 		linea.ChainName,
 		scroll.ChainName,
 		icp.ChainName,
+		xlm.ChainName,
 		btt.ChainName,
 	}
 
@@ -123,6 +126,7 @@ func (d *ChainDispatcher) Interceptor(ctx context.Context, req interface{}, info
 
 func (d *ChainDispatcher) preHandler(req interface{}) (resp *CommonReply) {
 	chainName := req.(CommonRequest).GetChain()
+	log.Debug("chain", chainName, "req", req)
 	if _, ok := d.registry[chainName]; !ok {
 		return &CommonReply{
 			Code:    common.ReturnCode_ERROR,
@@ -287,7 +291,7 @@ func (d *ChainDispatcher) GetBlockByRange(ctx context.Context, request *account.
 	return d.registry[request.Chain].GetBlockByRange(request)
 }
 
-func (d *ChainDispatcher) CreateUnSignTransaction(ctx context.Context, request *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
+func (d *ChainDispatcher) BuildUnSignTransaction(ctx context.Context, request *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
 	resp := d.preHandler(request)
 	if resp != nil {
 		return &account.UnSignTransactionResponse{
@@ -295,7 +299,7 @@ func (d *ChainDispatcher) CreateUnSignTransaction(ctx context.Context, request *
 			Msg:  "get un sign tx fail at pre handle",
 		}, nil
 	}
-	return d.registry[request.Chain].CreateUnSignTransaction(request)
+	return d.registry[request.Chain].BuildUnSignTransaction(request)
 }
 
 func (d *ChainDispatcher) BuildSignedTransaction(ctx context.Context, request *account.SignedTransactionRequest) (*account.SignedTransactionResponse, error) {
@@ -340,4 +344,28 @@ func (d *ChainDispatcher) GetExtraData(ctx context.Context, request *account.Ext
 		}, nil
 	}
 	return d.registry[request.Chain].GetExtraData(request)
+}
+
+func (d *ChainDispatcher) GetNftListByAddress(ctx context.Context, request *account.NftAddressRequest) (*account.NftAddressResponse, error) {
+	panic("implement me")
+}
+
+func (d *ChainDispatcher) GetNftCollection(ctx context.Context, request *account.NftCollectionRequest) (*account.NftCollectionResponse, error) {
+	panic("implement me")
+}
+
+func (d *ChainDispatcher) GetNftDetail(ctx context.Context, request *account.NftDetailRequest) (*account.NftDetailResponse, error) {
+	panic("implement me")
+}
+
+func (d *ChainDispatcher) GetNftHolderList(ctx context.Context, request *account.NftHolderListRequest) (*account.NftHolderListResponse, error) {
+	panic("implement me")
+}
+
+func (d *ChainDispatcher) GetNftTradeHistory(ctx context.Context, request *account.NftTradeHistoryRequest) (*account.NftTradeHistoryResponse, error) {
+	panic("implement me")
+}
+
+func (d *ChainDispatcher) GetAddressNftTradeHistory(ctx context.Context, request *account.AddressNftTradeHistoryRequest) (*account.AddressNftTradeHistoryResponse, error) {
+	panic("implement me")
 }

@@ -232,13 +232,13 @@
   "chain": "Aptos",
   "network": "mainnet",
   "base64Tx": "eyJGcm9tQWRkcmVzcyI6IjB4ZmY5NmFkNTE3ZGIwZjU4NzI0Y2Y1MWI3ODdiNGQ3MTM5NmY2MzRmODczMGZmMmE2ZjBlNWQxYmYzOGRjYjUzYyIsIlB1YmxpY0tleSI6IiIsIlRvQWRkcmVzcyI6IjB4Y2U2OWIwMDA1MTAyYWRjMTUwYjFiMTNiZmM0ZWE5ZjZkYzNmYjkwOWNhYTgzYmQzMzY0ZmMwZjk0ODNlN2NkOSIsIkFtb3VudCI6MTAwMDB9"
-}' 127.0.0.1:8189 dapplink.account.WalletAccountService.createUnSignTransaction
+}' 127.0.0.1:8189 dapplink.account.WalletAccountService.BuildUnSignTransaction
 ```
 
 - response
 ```
 {
-  "msg": "CreateUnSignTransaction success",
+  "msg": "BuildUnSignTransaction success",
   "unSignTx": "/5atUX2w9Yckz1G3h7TXE5b2NPhzD/Km8OXRvzjctTwCAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ1hcHRvc19hY2NvdW50CHRyYW5zZmVyAAIgzmmwAFECrcFQsbE7/E6p9tw/uQnKqDvTNk/A+Ug+fNkIECcAAAAAAACghgEAAAAAAGQAAAAAAAAAWTUsZwAAAAAB"
 }
 

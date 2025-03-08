@@ -355,11 +355,11 @@ func (c *ChainAdaptor) GetTxByAddress(req *account.TxAddressRequest) (*account.T
 		for i := 0; i < len(txs); i++ {
 			list = append(list, &account.TxMessage{
 				Hash:            txs[i].TxId,
-				Tos:             []*account.Address{{Address: txs[i].To}},
-				Froms:           []*account.Address{{Address: txs[i].From}},
+				To:              txs[i].To,
+				From:            txs[i].From,
 				Fee:             txs[i].TxId,
 				Status:          account.TxStatus_Success,
-				Values:          []*account.Value{{Value: txs[i].Amount}},
+				Value:           txs[i].Amount,
 				Type:            1,
 				Height:          txs[i].Height,
 				ContractAddress: txs[i].TokenContractAddress,
@@ -415,7 +415,6 @@ func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashR
 		log.Info("Get account code fail", "err", err)
 		return nil, err
 	}
-
 	if code == "contract" {
 		inputData := hexutil.Encode(rsp.Data()[:])
 		if len(inputData) >= 138 && inputData[:10] == "0xa9059cbb" {
@@ -430,26 +429,17 @@ func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashR
 		beforeTokenAddress = common2.Address{}.String()
 		beforeValue = rsp.Value()
 	}
-
-	var fromAddrs []*account.Address
-	var toAddrs []*account.Address
-	var valueList []*account.Value
-	fromAddrs = append(fromAddrs, &account.Address{Address: ""})
-	toAddrs = append(toAddrs, &account.Address{Address: beforeToAddress})
-	valueList = append(valueList, &account.Value{Value: beforeValue.String()})
 	var txStatus account.TxStatus
 	if receipt.Status == 1 {
 		txStatus = account.TxStatus_Success
 	} else {
 		txStatus = account.TxStatus_Failed
 	}
-
 	tx := &account.TxMessage{
 		Hash:            rsp.Hash().Hex(),
 		Index:           uint32(receipt.TransactionIndex),
-		Froms:           fromAddrs,
-		Tos:             toAddrs,
-		Values:          valueList,
+		To:              beforeToAddress,
+		Value:           beforeValue.String(),
 		Fee:             rsp.GasFeeCap().String(),
 		Status:          txStatus,
 		Type:            0,
@@ -510,7 +500,7 @@ func (c *ChainAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*accou
 		BlockHeader: blockHeaderList,
 	}, nil
 }
-func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
+func (c *ChainAdaptor) BuildUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
 
 	dyTx, _, err := c.buildDynamicFeeTx(req.Base64Tx)
 	if err != nil {
@@ -612,6 +602,10 @@ func (c *ChainAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.Ext
 		Msg:   "get extra data success",
 		Value: "not data",
 	}, nil
+}
+
+func (c *ChainAdaptor) GetNftListByAddress(req *account.NftAddressRequest) (*account.NftAddressResponse, error) {
+	panic("implement me")
 }
 
 func getSafeUint64Ptr(ptr *uint64) uint64 {

@@ -34,7 +34,7 @@ func (c *ChainAdaptor) SendTx(req *account.SendTxRequest) (*account.SendTxRespon
 	panic("implement me")
 }
 
-func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
+func (c *ChainAdaptor) BuildUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -453,11 +453,6 @@ func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashR
 		contractAddress = value.AssetName
 	}
 
-	// 构建返回数据
-	fromAddrs := []*account.Address{{Address: fromAddr}}
-	toAddrs := []*account.Address{{Address: toAddr}}
-	valueList := []*account.Value{{Value: amountStr}}
-
 	txStatus := account.TxStatus_Success
 	if len(resp.Ret) > 0 && resp.Ret[0].ContractRet != "SUCCESS" {
 		txStatus = account.TxStatus_Failed
@@ -469,9 +464,9 @@ func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashR
 		Tx: &account.TxMessage{
 			Hash:            resp.TxID,
 			Index:           0, // Tron 不使用此字段
-			Froms:           fromAddrs,
-			Tos:             toAddrs,
-			Values:          valueList,
+			From:            fromAddr,
+			To:              toAddr,
+			Value:           amountStr,
 			Fee:             strconv.FormatInt(resp.RawData.FeeLimit, 10),
 			Status:          txStatus,
 			Type:            0,
@@ -533,8 +528,8 @@ func (c *ChainAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*accou
 }
 
 //
-//// CreateUnSignTransaction Create unsigned transactions
-//func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
+//// BuildUnSignTransaction Create unsigned transactions
+//func (c *ChainAdaptor) BuildUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
 //	jsonBytes, err := base64.StdEncoding.DecodeString(req.Base64Tx)
 //	if err != nil {
 //		log.Error("decode string fail", "err", err)
@@ -594,6 +589,10 @@ func (c *ChainAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.Ext
 		Msg:   "get extra data success",
 		Value: "not data",
 	}, nil
+}
+
+func (c *ChainAdaptor) GetNftListByAddress(req *account.NftAddressRequest) (*account.NftAddressResponse, error) {
+	panic("implement me")
 }
 
 //

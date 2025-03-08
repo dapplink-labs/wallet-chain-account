@@ -139,7 +139,7 @@ func TestCosmos_GetBlockByRange(t *testing.T) {
 	fmt.Println("response", response)
 }
 
-func TestCosmos_CreateUnSignTransaction(t *testing.T) {
+func TestCosmos_BuildUnSignTransaction(t *testing.T) {
 	txStruct := &TxStructure{
 		ChainId:         "cosmoshub-4",
 		FromAddress:     "",
@@ -169,7 +169,7 @@ func TestCosmos_CreateUnSignTransaction(t *testing.T) {
 		Base64Tx: base64Tx,
 	}
 
-	response, err := chainAdaptor.CreateUnSignTransaction(request)
+	response, err := chainAdaptor.BuildUnSignTransaction(request)
 	assert.NoError(t, err)
 	fmt.Println("response", response)
 }

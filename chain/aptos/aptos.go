@@ -461,16 +461,13 @@ func (c *ChainAdaptor) GetTxByAddress(req *account.TxAddressRequest) (*account.T
 		} else {
 			totalFee = tx.GasUsed * tx.GasUnitPrice
 		}
-		fromAddr := &account.Address{
-			Address: tx.Sender,
-		}
 		txMessage := &account.TxMessage{
-			Hash:  tx.Hash,
-			Froms: []*account.Address{fromAddr},
+			Hash: tx.Hash,
+			From: tx.Sender,
 			//TODO to
-			Tos: []*account.Address{},
+			To: "",
 			//TODO Value
-			Values: []*account.Value{},
+			Value:  strconv.Itoa(0),
 			Fee:    strconv.FormatUint(totalFee, 10),
 			Status: txStatus,
 			Type:   0,
@@ -519,17 +516,11 @@ func (c *ChainAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashR
 	totalFee := CalculateGasFee(tx.GasUnitPrice, feeStatement.TotalChargeGasUnits, feeStatement.StorageFeeOctas, feeStatement.StorageFeeRefundOctas)
 
 	txMessage := &account.TxMessage{
-		Hash:  tx.Hash,
-		Index: uint32(tx.SequenceNumber),
-		Froms: []*account.Address{{
-			Address: tx.Sender,
-		}},
-		Tos: []*account.Address{{
-			Address: tx.Payload.Arguments[0].(string),
-		}},
-		Values: []*account.Value{{
-			Value: tx.Payload.Arguments[1].(string),
-		}},
+		Hash:   tx.Hash,
+		Index:  uint32(tx.SequenceNumber),
+		From:   tx.Sender,
+		To:     tx.Payload.Arguments[0].(string),
+		Value:  tx.Payload.Arguments[1].(string),
 		Fee:    strconv.FormatUint(totalFee, 10),
 		Status: txStatus,
 		Type:   determineTransactionType(tx.Payload.Function),
@@ -629,7 +620,7 @@ func (c *ChainAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*accou
 	return response, nil
 }
 
-func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
+func (c *ChainAdaptor) BuildUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
 	response := &account.UnSignTransactionResponse{
 		Code:     common2.ReturnCode_ERROR,
 		Msg:      "",
@@ -637,7 +628,7 @@ func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionReq
 	}
 	if ok, msg := validateChainAndNetwork(req.Chain, req.Network); !ok {
 		response.Msg = msg
-		err := fmt.Errorf("CreateUnSignTransaction validateChainAndNetwork fail, err msg = %s", msg)
+		err := fmt.Errorf("BuildUnSignTransaction validateChainAndNetwork fail, err msg = %s", msg)
 		return response, err
 	}
 	if req.Base64Tx == "" {
@@ -646,7 +637,7 @@ func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionReq
 	}
 	txByteList, err := base64.StdEncoding.DecodeString(req.Base64Tx)
 	if err != nil {
-		err := fmt.Errorf("CreateUnSignTransaction failed to decode base64 transaction: %w", err)
+		err := fmt.Errorf("BuildUnSignTransaction failed to decode base64 transaction: %w", err)
 		log.Error("err", err)
 		response.Msg = err.Error()
 		return nil, err
@@ -654,7 +645,7 @@ func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionReq
 
 	var txRequest TransactionRequest
 	if err := json.Unmarshal(txByteList, &txRequest); err != nil {
-		err := fmt.Errorf("CreateUnSignTransaction failed to unmarshal transaction request: %w", err)
+		err := fmt.Errorf("BuildUnSignTransaction failed to unmarshal transaction request: %w", err)
 		log.Error("err", err)
 		response.Msg = err.Error()
 		return nil, err
@@ -662,7 +653,7 @@ func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionReq
 
 	rawTransaction, err := ConvertToRawTransaction(&txRequest)
 	if err != nil {
-		err := fmt.Errorf("CreateUnSignTransaction failed to ConvertToRawTransaction: %w", err)
+		err := fmt.Errorf("BuildUnSignTransaction failed to ConvertToRawTransaction: %w", err)
 		log.Error("err", err)
 		response.Msg = err.Error()
 		return nil, err
@@ -670,7 +661,7 @@ func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionReq
 
 	signingMessage, err := rawTransaction.SigningMessage()
 	if err != nil {
-		err := fmt.Errorf("CreateUnSignTransaction failed to SigningMessage: %w", err)
+		err := fmt.Errorf("BuildUnSignTransaction failed to SigningMessage: %w", err)
 		log.Error("err", err)
 		response.Msg = err.Error()
 		return nil, err
@@ -679,7 +670,7 @@ func (c *ChainAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionReq
 	signingMessageHex := hex.EncodeToString(signingMessage)
 
 	response.Code = common2.ReturnCode_SUCCESS
-	response.Msg = "CreateUnSignTransaction success"
+	response.Msg = "BuildUnSignTransaction success"
 	response.UnSignTx = signingMessageHex
 	return response, nil
 }
@@ -710,14 +701,14 @@ func (c *ChainAdaptor) BuildSignedTransaction(req *account.SignedTransactionRequ
 	}
 	var txRequest TransactionRequest
 	if err := json.Unmarshal(txByteList, &txRequest); err != nil {
-		err := fmt.Errorf("CreateUnSignTransaction failed to unmarshal transaction request: %w", err)
+		err := fmt.Errorf("BuildUnSignTransaction failed to unmarshal transaction request: %w", err)
 		log.Error("err", err)
 		response.Msg = err.Error()
 		return nil, err
 	}
 	rawTransaction, err := ConvertToRawTransaction(&txRequest)
 	if err != nil {
-		err := fmt.Errorf("CreateUnSignTransaction failed to ConvertToRawTransaction: %w", err)
+		err := fmt.Errorf("BuildUnSignTransaction failed to ConvertToRawTransaction: %w", err)
 		log.Error("err", err)
 		response.Msg = err.Error()
 		return nil, err
@@ -927,6 +918,10 @@ func (c *ChainAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.Ext
 	response.Msg = "get extra data success"
 	response.Value = "no data"
 	return response, nil
+}
+
+func (c *ChainAdaptor) GetNftListByAddress(req *account.NftAddressRequest) (*account.NftAddressResponse, error) {
+	panic("implement me")
 }
 
 func CalculateGasFee(gasUnitPrice, totalChargeGasUnits, storageFeeOctas, storageRefundOctas uint64) uint64 {

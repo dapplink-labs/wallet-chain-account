@@ -3,6 +3,7 @@ package sui
 import (
 	"encoding/hex"
 	"fmt"
+	"strconv"
 
 	"math/big"
 	"regexp"
@@ -181,8 +182,7 @@ func (s *SuiAdaptor) SendTx(req *account.SendTxRequest) (*account.SendTxResponse
 }
 
 func (s *SuiAdaptor) GetTxByAddress(req *account.TxAddressRequest) (*account.TxAddressResponse, error) {
-	cursor := req.Cursor
-	txList, err := s.suiClient.GetTxListByAddress(req.Address, cursor, req.Pagesize)
+	txList, err := s.suiClient.GetTxListByAddress(req.Address, strconv.Itoa(int(req.Page)), req.Pagesize)
 	if err != nil {
 		return &account.TxAddressResponse{
 			Code: common2.ReturnCode_ERROR,
@@ -221,19 +221,19 @@ func (s *SuiAdaptor) GetTxByHash(req *account.TxHashRequest) (*account.TxHashRes
 }
 
 func (a *SuiAdaptor) getTxMessage(suiTransaction models.SuiTransactionBlockResponse) (*account.TxMessage, error) {
-	var from_addrs []*account.Address
-	var to_addrs []*account.Address
-	var value_list []*account.Value
+	var fromAddr string
+	var toAddr string
+	var Value string
 	totalAmount := big.NewInt(0)
 	toAmount := big.NewInt(0)
 	for _, bc := range suiTransaction.BalanceChanges {
 		if bc.Owner.AddressOwner != "" {
-			from_addrs = append(from_addrs, &account.Address{Address: bc.Owner.AddressOwner})
+			fromAddr = bc.Owner.AddressOwner
 			totalAmount = new(big.Int).Add(totalAmount, stringToInt(bc.Amount))
 		} else {
-			to_addrs = append(to_addrs, &account.Address{Address: bc.Owner.ObjectOwner})
+			toAddr = bc.Owner.ObjectOwner
 			toAmount = new(big.Int).Add(toAmount, stringToInt(bc.Amount))
-			value_list = append(value_list, &account.Value{Value: bc.Amount})
+			Value = bc.Amount
 		}
 	}
 	totalAmount = new(big.Int).Abs(totalAmount)
@@ -244,9 +244,9 @@ func (a *SuiAdaptor) getTxMessage(suiTransaction models.SuiTransactionBlockRespo
 		Status:   account.TxStatus_Success,
 		Type:     0,
 		Datetime: suiTransaction.TimestampMs,
-		Froms:    from_addrs,
-		Tos:      to_addrs,
-		Values:   value_list,
+		From:     fromAddr,
+		To:       toAddr,
+		Value:    Value,
 		Fee:      fee,
 	}, nil
 }
@@ -256,7 +256,7 @@ func (s *SuiAdaptor) GetBlockByRange(req *account.BlockByRangeRequest) (*account
 	panic("implement me")
 }
 
-func (s *SuiAdaptor) CreateUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
+func (s *SuiAdaptor) BuildUnSignTransaction(req *account.UnSignTransactionRequest) (*account.UnSignTransactionResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -278,6 +278,10 @@ func (s *SuiAdaptor) VerifySignedTransaction(req *account.VerifyTransactionReque
 
 func (s *SuiAdaptor) GetExtraData(req *account.ExtraDataRequest) (*account.ExtraDataResponse, error) {
 	//TODO implement me
+	panic("implement me")
+}
+
+func (c *SuiAdaptor) GetNftListByAddress(req *account.NftAddressRequest) (*account.NftAddressResponse, error) {
 	panic("implement me")
 }
 

@@ -21,7 +21,7 @@ const (
 	aptosAmount = uint64(400_0000)
 )
 
-func Test_v2_CreateUnSignTransaction_and_GenerateSignature(t *testing.T) {
+func Test_v2_BuildUnSignTransaction_and_GenerateSignature(t *testing.T) {
 	fromAddr, _ := AddressToAccountAddress("0x06671b50c2a5edb709c9e15d7e5a3d6496ae923759a217090e4ba9622720da5e")
 	//fromPubKey, _ := PubKeyHexToPubKey("0x0caeddcef8612648417b7a07f1634625ab2da615c9178f00fe46fd0ac8d4d0e8")
 	toAddr, _ := AddressToAccountAddress("0x84acbdf10e22b9b536d86ad6d017ff2854f7e1a48a4bb1f792ce571ee084fa68")
@@ -102,7 +102,7 @@ func Test_v2_CreateUnSignTransaction_and_GenerateSignature(t *testing.T) {
 			Network:  string(Mainnet),
 			Base64Tx: transactionRequestBase64ByteList,
 		}
-		unSignTransaction, err := adaptor.CreateUnSignTransaction(req)
+		unSignTransaction, err := adaptor.BuildUnSignTransaction(req)
 		assert.NoError(t, err)
 		fmt.Println("unSignTransaction:", unSignTransaction)
 		fmt.Println("unSignTransaction UnSignTx:", unSignTransaction.UnSignTx)
@@ -129,7 +129,7 @@ func Test_v2_BuildSignedTransaction(t *testing.T) {
 	priceResponse, err := aptosHttpClient.GetGasPrice()
 	assert.NoError(t, err)
 	// 1731249914 = CreateTxReqByAptosCoin input
-	// 1731249914 = CreateUnSignTransaction input
+	// 1731249914 = BuildUnSignTransaction input
 	expirationTimestampSeconds := uint64(1731307824)
 	fmt.Println("expirationTimestampSeconds:", expirationTimestampSeconds)
 	amount := aptosAmount

@@ -224,14 +224,14 @@ func TestChainAdaptor_GetBlockByRange(t *testing.T) {
 	log.Info(string(js))
 }
 
-func TestChainAdaptor_CreateUnSignTransaction(t *testing.T) {
+func TestChainAdaptor_BuildUnSignTransaction(t *testing.T) {
 	adaptor, err := setup()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	base64Tx := createTestBase64Tx("", 0, "", "")
-	rsp, err := adaptor.CreateUnSignTransaction(&account.UnSignTransactionRequest{
+	rsp, err := adaptor.BuildUnSignTransaction(&account.UnSignTransactionRequest{
 		Chain:    ChainName,
 		Base64Tx: base64Tx,
 	})
@@ -344,7 +344,7 @@ func TestChainAdaptor_SendTx2(t *testing.T) {
 	}
 
 	base64Tx := createTestBase64Tx("", limit, maxFeePerGas.String(), maxPriorityFeePerGas.String())
-	rsp0, err := adaptor.CreateUnSignTransaction(&account.UnSignTransactionRequest{
+	rsp0, err := adaptor.BuildUnSignTransaction(&account.UnSignTransactionRequest{
 		Chain:    ChainName,
 		Base64Tx: base64Tx,
 	})

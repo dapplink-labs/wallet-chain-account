@@ -5,7 +5,7 @@
 grpcurl -plaintext -d '{
   "base64Tx": "eyJjaGFpbl9pZCI6IjEwIiwibm9uY2UiOjUsImZyb21fYWRkcmVzcyI6IjB4NDc0MGQ3ZUUxYkQ0NTc2YUQ5NjJmMjgwNmIxMTI5OThDYzNCNzJGYyIsInRvX2FkZHJlc3MiOiIweDgyMThhMEY0N0Y0YzBkRTBjMTc1NGY1MDg3NDcwN2NkNmU3YjJlNWUiLCJnYXNfbGltaXQiOjIxMDAwLCJtYXhfZmVlX3Blcl9nYXMiOiIyNjAwMDAwMDAwMCIsIm1heF9wcmlvcml0eV9mZWVfcGVyX2dhcyI6IjIwNTIwMDAwMDAwIiwiYW1vdW50IjoiOTAwMDAwMDAwMDAwMDAwMDAwMCIsImNvbnRyYWN0X2FkZHJlc3MiOiIweGIxMmMxM2U2NmFkZTFmNzJmNzE4MzRmMmZjNTA4MmRiOGMwOTEzNTgifQ==",
   "chain": "Optimism"
-}' 127.0.0.1:8189 dapplink.account.WalletAccountService.createUnSignTransaction
+}' 127.0.0.1:8189 dapplink.account.WalletAccountService.BuildUnSignTransaction
 ```
 - response
 ```

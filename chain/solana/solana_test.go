@@ -261,19 +261,19 @@ func TestChainAdaptor_GetBlockByNumber(t *testing.T) {
 // },
 // solana.HashFromBytes(binary.BigEndian.AppendUint64(make([]byte, 24), data.Nonce)),
 // solana.TransactionPayer(fromPubkey),
-func TestChainAdaptor_CreateUnSignTransaction(t *testing.T) {
+func TestChainAdaptor_BuildUnSignTransaction(t *testing.T) {
 	adaptor, err := setup()
 	if err != nil {
 		return
 	}
 
-	resp, err := adaptor.CreateUnSignTransaction(&account.UnSignTransactionRequest{
+	resp, err := adaptor.BuildUnSignTransaction(&account.UnSignTransactionRequest{
 		Chain:    ChainName,
 		Network:  "mainnet",
 		Base64Tx: createTestBase64Tx(),
 	})
 	if err != nil {
-		log.Error("CreateUnSignTransaction failed:", err)
+		log.Error("BuildUnSignTransaction failed:", err)
 		return
 	}
 
