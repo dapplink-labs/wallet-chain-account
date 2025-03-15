@@ -3,7 +3,7 @@ server:
 
 network: mainnet
 
-chains: [Ethereum, Solana, Tron, Aptos, Sui, Arbitrum,BscChain,Mantle ,Optimism,Linea,Scroll,Polygon,Xlm,Btt]
+chains: [Ethereum, Solana, Tron, Aptos, Sui, Zksync, Arbitrum,BscChain,Mantle ,Optimism,Linea,Scroll,Polygon,Xlm,Btt]
 
 wallet_node:
   eth:
@@ -145,6 +145,15 @@ wallet_node:
     rpc_pass: ''
     data_api_url: ''
     data_api_key: ''
+    data_api_token: ''
+    time_out: 15
+
+  zksync:
+    rpc_url: 'https://1rpc.io/zksync2-era'
+    rpc_user: ''
+    rpc_pass: ''
+    data_api_url: 'https://api.etherscan.io/v2/api?chainid=324&'
+    data_api_key: 'HZEZGEPJJDA633N421AYW9NE8JFNZZC7JT'
     data_api_token: ''
     time_out: 15
 

@@ -420,6 +420,10 @@ func (c *clnt) Close() {
 	c.rpc.Close()
 }
 
+func (c *clnt) GetRPC() RPC {
+	return c.rpc
+}
+
 type RPC interface {
 	Close()
 	CallContext(ctx context.Context, result any, method string, args ...any) error
