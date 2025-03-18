@@ -25,7 +25,7 @@ import (
 	account2 "github.com/dapplink-labs/chain-explorer-api/common/account"
 	"github.com/dapplink-labs/wallet-chain-account/chain"
 	"github.com/dapplink-labs/wallet-chain-account/chain/evmbase"
-	erc20_base2 "github.com/dapplink-labs/wallet-chain-account/chain/evmbase"
+	evm_base "github.com/dapplink-labs/wallet-chain-account/chain/evmbase"
 	"github.com/dapplink-labs/wallet-chain-account/common/util"
 	"github.com/dapplink-labs/wallet-chain-account/config"
 	"github.com/dapplink-labs/wallet-chain-account/rpc/account"
@@ -35,16 +35,16 @@ import (
 const ChainName = "Ethereum"
 
 type ChainAdaptor struct {
-	ethClient     erc20_base2.EthClient
-	ethDataClient *erc20_base2.EthData
+	ethClient     evm_base.EthClient
+	ethDataClient *evm_base.EthData
 }
 
 func NewChainAdaptor(conf *config.Config) (chain.IChainAdaptor, error) {
-	ethClient, err := erc20_base2.DialEthClient(context.Background(), conf.WalletNode.Eth.RpcUrl)
+	ethClient, err := evm_base.DialEthClient(context.Background(), conf.WalletNode.Eth.RpcUrl)
 	if err != nil {
 		return nil, err
 	}
-	ethDataClient, err := erc20_base2.NewEthDataClient(conf.WalletNode.Eth.DataApiUrl, conf.WalletNode.Eth.DataApiKey, time.Second*15)
+	ethDataClient, err := evm_base.NewEthDataClient(conf.WalletNode.Eth.DataApiUrl, conf.WalletNode.Eth.DataApiKey, time.Second*15)
 	if err != nil {
 		return nil, err
 	}
