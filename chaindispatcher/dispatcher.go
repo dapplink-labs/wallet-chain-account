@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/dapplink-labs/wallet-chain-account/chain/arbitrum"
 	"github.com/dapplink-labs/wallet-chain-account/chain/binance"
+	"github.com/dapplink-labs/wallet-chain-account/chain/icp"
 	"github.com/dapplink-labs/wallet-chain-account/chain/btt"
 	"github.com/dapplink-labs/wallet-chain-account/chain/linea"
 	"github.com/dapplink-labs/wallet-chain-account/chain/mantle"
@@ -65,6 +66,7 @@ func New(conf *config.Config) (*ChainDispatcher, error) {
 		linea.ChainName:    linea.NewChainAdaptor,
 		scroll.ChainName:   scroll.NewChainAdaptor,
 		xlm.ChainName:      xlm.NewChainAdaptor,
+		icp.ChainName:      icp.NewChainAdaptor,
 		btt.ChainName:      btt.NewChainAdaptor,
 	}
 
@@ -83,6 +85,7 @@ func New(conf *config.Config) (*ChainDispatcher, error) {
 		optimism.ChainName,
 		linea.ChainName,
 		scroll.ChainName,
+		icp.ChainName,
 		xlm.ChainName,
 		btt.ChainName,
 	}
