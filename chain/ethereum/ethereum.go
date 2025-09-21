@@ -261,7 +261,10 @@ func (c *ChainAdaptor) GetAccount(req *account.AccountRequest) (*account.Account
 			Msg:  "get nonce by address fail",
 		}, nil
 	}
-	balanceResult, err := c.ethDataClient.GetBalanceByAddress(req.ContractAddress, req.Address)
+
+	// balanceResult, err := c.ethDataClient.GetBalanceByAddress(req.ContractAddress, req.Address)
+	data := erc20_base2.BuildErc20BalanceData(common.HexToAddress(req.Address))
+	balanceHex, err := c.ethClient.EthCallContract(req.ContractAddress, data)
 	if err != nil {
 		return &account.AccountResponse{
 			Code:    common2.ReturnCode_ERROR,
@@ -269,12 +272,26 @@ func (c *ChainAdaptor) GetAccount(req *account.AccountRequest) (*account.Account
 			Balance: "0",
 		}, err
 	}
-	log.Info("balance result", "balance=", balanceResult.Balance, "balanceStr=", balanceResult.BalanceStr)
 
-	balanceStr := "0"
-	if balanceResult.Balance != nil && balanceResult.Balance.Int() != nil {
-		balanceStr = balanceResult.Balance.Int().String()
+	if len(balanceHex) < 3 {
+		balanceHex = "0x0"
 	}
+	balance := new(big.Int)
+	_, ok := balance.SetString(balanceHex[2:], 16) // 去掉0x前缀，按16进制解析
+	if !ok {
+		return &account.AccountResponse{
+			Code:    common2.ReturnCode_ERROR,
+			Msg:     "invalid balance hex",
+			Balance: "0",
+		}, nil
+	}
+
+	log.Info("balance result", "balance", balance)
+
+	// balanceStr := "0"
+	// if balanceResult.Balance != nil && balanceResult.Balance.Int() != nil {
+	// 	balanceStr = balanceResult.Balance.Int().String()
+	// }
 	sequence := strconv.FormatUint(uint64(nonceResult), 10)
 
 	return &account.AccountResponse{
@@ -282,7 +299,7 @@ func (c *ChainAdaptor) GetAccount(req *account.AccountRequest) (*account.Account
 		Msg:           "get account response success",
 		AccountNumber: "0",
 		Sequence:      sequence,
-		Balance:       balanceStr,
+		Balance:       balance.String(),
 	}, nil
 }
 

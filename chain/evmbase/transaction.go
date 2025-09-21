@@ -28,6 +28,20 @@ func BuildErc20Data(toAddress common.Address, amount *big.Int) []byte {
 	return data
 }
 
+func BuildErc20BalanceData(address common.Address) []byte {
+	var data []byte
+
+	transferFnSignature := []byte("balanceOf(address)")
+	hash := crypto.Keccak256Hash(transferFnSignature)
+	methodId := hash[:4]
+	dataAddress := common.LeftPadBytes(address.Bytes(), 32)
+
+	data = append(data, methodId...)
+	data = append(data, dataAddress...)
+
+	return data
+}
+
 func BuildErc721Data(fromAddress, toAddress common.Address, tokenId *big.Int) []byte {
 	var data []byte
 

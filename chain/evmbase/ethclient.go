@@ -2,6 +2,7 @@ package evmbase
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -71,6 +72,7 @@ type EthClient interface {
 	EthGetCode(common.Address) (string, error)
 	GetBalance(address common.Address) (*big.Int, error)
 	FilterLogs(filterQuery ethereum.FilterQuery, chainId uint) (Logs, error)
+	EthCallContract(string, []byte) (string, error)
 	Close()
 }
 
@@ -104,6 +106,7 @@ func (c *clnt) BlockHeaderByNumber(number *big.Int) (*types.Header, error) {
 	defer cancel()
 
 	var header *types.Header
+
 	err := c.rpc.CallContext(ctxwt, &header, "eth_getBlockByNumber", toBlockNumArg(number), false)
 	if err != nil {
 		log.Error("Call eth_getBlockByNumber method fail", "err", err)
@@ -114,6 +117,28 @@ func (c *clnt) BlockHeaderByNumber(number *big.Int) (*types.Header, error) {
 	}
 
 	return header, nil
+}
+
+func (c *clnt) EthCallContract(contractAddr string, data []byte) (string, error) {
+	ctxwt, cancel := context.WithTimeout(context.Background(), defaultRequestTimeout)
+	defer cancel()
+
+	var result string
+
+	msg := map[string]interface{}{
+		"to":   contractAddr,                    // 合约地址
+		"data": "0x" + hex.EncodeToString(data), // ABI 编码好的 data
+	}
+	err := c.rpc.CallContext(ctxwt, &result, "eth_call", msg, "latest")
+	if err != nil {
+		log.Error("Call eth_call method fail", "err", err)
+		return "", err
+	} else if result == "" || result == "0x" {
+		log.Warn("eth_call not found")
+		return "", ethereum.NotFound
+	}
+
+	return result, nil
 }
 
 func (c *clnt) BlockHeaderByHash(hash common.Hash) (*types.Header, error) {
