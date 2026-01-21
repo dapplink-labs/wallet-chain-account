@@ -1,12 +1,10 @@
 package ton
 
 import (
+	"encoding/hex"
 	"strconv"
 
-	"crypto/ed25519"
-
 	"github.com/ethereum/go-ethereum/log"
-
 	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/ton/wallet"
 
@@ -51,7 +49,11 @@ func (c *ChainAdaptor) GetSupportChains(req *account.SupportChainsRequest) (*acc
 }
 
 func (c *ChainAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*account.ConvertAddressResponse, error) {
-	addr, err := wallet.AddressFromPubKey(ed25519.PublicKey(req.PublicKey), req.Type, 0)
+	decodeString, _ := hex.DecodeString(req.PublicKey)
+	addr, err := wallet.AddressFromPubKey(decodeString, wallet.ConfigV5R1Final{
+		NetworkGlobalID: wallet.MainnetGlobalID,
+		Workchain:       0,
+	}, 0)
 	if err != nil {
 		return &account.ConvertAddressResponse{
 			Code: common.ReturnCode_ERROR,
@@ -61,7 +63,7 @@ func (c *ChainAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*acco
 		return &account.ConvertAddressResponse{
 			Code:    common.ReturnCode_SUCCESS,
 			Msg:     "convert address successs",
-			Address: addr.String(),
+			Address: addr.Copy().Testnet(false).Bounce(false).String(),
 		}, nil
 	}
 }
@@ -69,11 +71,19 @@ func (c *ChainAdaptor) ConvertAddress(req *account.ConvertAddressRequest) (*acco
 // ValidAddress 验证地址
 func (c *ChainAdaptor) ValidAddress(req *account.ValidAddressRequest) (*account.ValidAddressResponse, error) {
 	_, err := address.ParseAddr(req.Address)
-	return &account.ValidAddressResponse{
-		Code:  common.ReturnCode_SUCCESS,
-		Msg:   "convert address successs",
-		Valid: err == nil,
-	}, nil
+	if err != nil {
+		return &account.ValidAddressResponse{
+			Code:  common.ReturnCode_ERROR,
+			Msg:   "convert address error",
+			Valid: false,
+		}, nil
+	} else {
+		return &account.ValidAddressResponse{
+			Code:  common.ReturnCode_SUCCESS,
+			Msg:   "convert address successs",
+			Valid: err == nil,
+		}, nil
+	}
 }
 
 func (c *ChainAdaptor) GetBlockByNumber(req *account.BlockNumberRequest) (*account.BlockResponse, error) {
@@ -98,6 +108,7 @@ func (c *ChainAdaptor) GetBlockHeaderByHash(req *account.BlockHeaderHashRequest)
 }
 
 func (c *ChainAdaptor) GetBlockHeaderByNumber(req *account.BlockHeaderNumberRequest) (*account.BlockHeaderResponse, error) {
+
 	return &account.BlockHeaderResponse{
 		Code: common.ReturnCode_SUCCESS,
 		Msg:  "Do not support this rpc interface",
